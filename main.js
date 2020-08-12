@@ -1,4 +1,5 @@
-$('body').on('click', '.ticker.correct', function () {
+$('body').on('touchend', '.ticker.correct', function (e) {
+    e.preventDefault();
     var total = parseInt($(this).parent('.row').find('.totalCount').text());
     var correctCount = parseInt($(this).text());
     var correctPercent;
@@ -13,7 +14,8 @@ $('body').on('click', '.ticker.correct', function () {
 
 });
 
-$('body').on('click', '.ticker.incorrect', function () {
+$('body').on('touchend', '.ticker.incorrect', function (e) {
+    e.preventDefault();
     var total = parseInt($(this).parent('.row').find('.totalCount').text());
     var incorrectCount = parseInt($(this).text());
     var incorrectPercent;
