@@ -18,15 +18,16 @@ $('body').on('touchend', '.ticker.incorrect', function (e) {
     e.preventDefault();
     var total = parseInt($(this).parent('.row').find('.totalCount').text());
     var incorrectCount = parseInt($(this).text());
-    var incorrectPercent;
+    var correctCount = parseInt($(this).parent('.row').find('.correct').text());
+    var correctPercent;
 
     incorrectCount++
     total++
-    incorrectPercent = Math.ceil(incorrectCount / total * 100) + '%';
+    correctPercent = Math.ceil(correctCount / total * 100) + '%';
 
     $(this).text(incorrectCount);
     $(this).parent('.row').find('.totalCount').text(total);
-    $(this).parent('.row').find('.percentValue').text(incorrectPercent);
+    $(this).parent('.row').find('.percentValue').text(correctPercent);
 
 });
 
