@@ -64,6 +64,7 @@ $spacing-96px: 96px;
 
 body {
     padding: $spacing-48px;
+    touch-action: manipulation;
 
     &.overlayOpen {
         overflow: hidden;
