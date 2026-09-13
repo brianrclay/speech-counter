@@ -263,16 +263,23 @@ button:disabled {
   min-width: 0;
 }
 
+.name-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  width: 100%;
+  margin-bottom: 12px;
+}
+
 .row-info input {
   padding: 10px 12px;
   border-radius: 10px;
   border: 1px solid var(--border);
   background-color: var(--bg);
   color: var(--text);
-  width: 100%;
-  max-width: 160px;
   font-size: 15px;
-  margin-bottom: 12px;
+  flex: 1 1 96px;
+  min-width: 96px;
 }
 
 .row-info input::placeholder {
