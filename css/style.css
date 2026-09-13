@@ -484,6 +484,11 @@ button:disabled {
   margin-top: 32px;
   padding-top: 16px;
   text-align: center;
+  gap: 16px;
+  display: flex;
+  align-items: center;
+  flex-direction: row;
+  justify-content: center;
 }
 
 .app-footer a {
