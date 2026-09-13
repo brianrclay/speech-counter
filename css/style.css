@@ -75,6 +75,20 @@ body {
   body {
     padding: 20px 14px 48px;
   }
+
+  .app-title {
+    font-size: 19px;
+  }
+
+  /* Keep Undo/Clear compact enough to always stay in the same row
+     as the title instead of wrapping onto their own line. */
+  .app-actions .btn span {
+    display: none;
+  }
+
+  .app-actions .btn {
+    padding: 10px;
+  }
 }
 
 div,
@@ -117,7 +131,7 @@ button:disabled {
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   padding-bottom: 20px;
 }
 
@@ -126,6 +140,7 @@ button:disabled {
   font-size: 22px;
   font-weight: 800;
   letter-spacing: -0.2px;
+  white-space: nowrap;
 }
 
 .app-actions {
