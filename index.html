@@ -15,87 +15,96 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap"
         rel="stylesheet">
     <link href="./css/style.css" rel="stylesheet">
-    <link href="./css/helpers.css" rel="stylesheet">
 </head>
 
 <body>
-    <div class="header">
-        <div class="header-actions flex ai-center">
-            <button type="button" id="undo" class="flex ai-center" disabled>
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 16 16">
-                    <path fill="currentColor"
-                        d="M4.5 3.5a.5.5 0 010 1H2.707l1.85 1.85a5.5 5.5 0 11-1.463 5.21.5.5 0 01.966-.26 4.5 4.5 0 101.204-4.243L7.207 9H4.5a.5.5 0 01-.5-.5v-5a.5.5 0 01.5-.5z" />
+    <header class="app-header">
+        <h1 class="app-title">Speech Counter</h1>
+        <div class="app-actions">
+            <button type="button" id="undo" class="btn btn-ghost" disabled aria-label="Undo last action">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="1 4 1 10 7 10" />
+                    <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
                 </svg>
-                <span class="m-l-8">Undo</span>
+                <span>Undo</span>
             </button>
-            <button type="button" id="clear" class="flex ai-center">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 16 16">
-                    <path fill="currentColor" fill-rule="evenodd"
-                        d="M2.067 15.5a.5.5 0 01-1 0v-4a.5.5 0 01.5-.5h4.266a.5.5 0 010 1H2.067v3.5z" clip-rule="evenodd" />
-                    <path fill="currentColor" fill-rule="evenodd"
-                        d="M14.933 8.5a.5.5 0 011 0c0 4.15-3.573 7.5-7.966 7.5-2.902 0-5.455-1.648-6.842-4.266a.5.5 0 11.883-.468C3.228 13.566 5.448 15 7.967 15c3.854 0 6.966-2.918 6.966-6.5zM13.867 4V.5a.5.5 0 011 0v4a.5.5 0 01-.5.5H10.1a.5.5 0 110-1h3.767z"
-                        clip-rule="evenodd" />
-                    <path fill="currentColor" fill-rule="evenodd"
-                        d="M1 7.5a.5.5 0 01-1 0C0 3.35 3.574 0 7.967 0c2.901 0 5.454 1.648 6.842 4.266a.5.5 0 01-.884.468C12.705 2.434 10.485 1 7.967 1 4.112 1 1 3.918 1 7.5z"
-                        clip-rule="evenodd" />
+            <button type="button" id="clear" class="btn btn-ghost" aria-label="Clear all rows">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="3 6 5 6 21 6" />
+                    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                    <path d="M10 11v6" />
+                    <path d="M14 11v6" />
+                    <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
                 </svg>
-                <span class="m-l-8">Clear</span>
+                <span>Clear</span>
             </button>
         </div>
-        <div class="label">Correct</div>
-        <div class="label">Incorrect</div>
+    </header>
+
+    <div class="columns" aria-hidden="true">
+        <span></span>
+        <span class="column-label">Correct</span>
+        <span class="column-label">Incorrect</span>
     </div>
-    <div class="row-wrapper">
+
+    <div class="row-wrapper" id="row-wrapper">
         <div class="row">
             <div class="row-info">
-                <input type="text">
-                <span class="total bold">Total: <span class="totalCount">0</span></span>
-                <span class="percent bold">Correct: <span class="percentValue">0</span></span>
-                <button type="button" class="flex ai-center delete-row">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 16 16">
-                        <path fill="currentColor" fill-rule="evenodd"
-                            d="M13.6 6c.258 0 .467.224.467.5v7c0 1.381-1.045 2.5-2.334 2.5H4.267c-1.29 0-2.334-1.119-2.334-2.5v-7c0-.276.21-.5.467-.5.258 0 .467.224.467.5v7c0 .829.626 1.5 1.4 1.5h7.466c.774 0 1.4-.671 1.4-1.5v-7c0-.276.21-.5.467-.5zM8.033 7a.5.5 0 01.5.5v5a.5.5 0 01-1 0v-5a.5.5 0 01.5-.5zm2.8 0a.5.5 0 01.5.5v5a.5.5 0 11-1 0v-5a.5.5 0 01.5-.5zm-5.6 0a.5.5 0 01.5.5v5a.5.5 0 01-1 0v-5a.5.5 0 01.5-.5zm4.634-7c.257 0 .466.224.466.5V3h4.2c.258 0 .467.224.467.5s-.209.5-.467.5H1.467C1.209 4 1 3.776 1 3.5s.209-.5.467-.5h4.199V.5c0-.276.21-.5.467-.5h3.734zM9.4 1H6.6v2h2.8V1z"
-                            clip-rule="evenodd" />
+                <input type="text" placeholder="Target">
+                <span class="stats">
+                    <span class="total bold">Total: <span class="totalCount">0</span></span>
+                    <span class="percent bold">Correct: <span class="percentValue">0</span></span>
+                </span>
+                <button type="button" class="delete-row" aria-label="Delete row">
+                    <svg class="icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="3 6 5 6 21 6" />
+                        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                        <path d="M10 11v6" />
+                        <path d="M14 11v6" />
+                        <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
                     </svg>
-                    <span class="m-l-8">Delete row</span>
+                    <span>Delete row</span>
                 </button>
             </div>
-            <button type="button" class="ticker correct">
-                0
-            </button>
-            <button type="button" class="ticker incorrect">
-                0
-            </button>
+            <button type="button" class="ticker correct">0</button>
+            <button type="button" class="ticker incorrect">0</button>
         </div>
     </div>
+
     <div class="row template">
         <div class="row-info">
-            <input type="text">
-            <span class="total bold">Total: <span class="totalCount">0</span></span>
-            <span class="percent bold">Correct: <span class="percentValue">0</span></span>
-            <button type="button" class="flex ai-center delete-row">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 16 16">
-                    <path fill="currentColor" fill-rule="evenodd"
-                        d="M13.6 6c.258 0 .467.224.467.5v7c0 1.381-1.045 2.5-2.334 2.5H4.267c-1.29 0-2.334-1.119-2.334-2.5v-7c0-.276.21-.5.467-.5.258 0 .467.224.467.5v7c0 .829.626 1.5 1.4 1.5h7.466c.774 0 1.4-.671 1.4-1.5v-7c0-.276.21-.5.467-.5zM8.033 7a.5.5 0 01.5.5v5a.5.5 0 01-1 0v-5a.5.5 0 01.5-.5zm2.8 0a.5.5 0 01.5.5v5a.5.5 0 11-1 0v-5a.5.5 0 01.5-.5zm-5.6 0a.5.5 0 01.5.5v5a.5.5 0 01-1 0v-5a.5.5 0 01.5-.5zm4.634-7c.257 0 .466.224.466.5V3h4.2c.258 0 .467.224.467.5s-.209.5-.467.5H1.467C1.209 4 1 3.776 1 3.5s.209-.5.467-.5h4.199V.5c0-.276.21-.5.467-.5h3.734zM9.4 1H6.6v2h2.8V1z"
-                        clip-rule="evenodd" />
+            <input type="text" placeholder="Target">
+            <span class="stats">
+                <span class="total bold">Total: <span class="totalCount">0</span></span>
+                <span class="percent bold">Correct: <span class="percentValue">0</span></span>
+            </span>
+            <button type="button" class="delete-row" aria-label="Delete row">
+                <svg class="icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="3 6 5 6 21 6" />
+                    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                    <path d="M10 11v6" />
+                    <path d="M14 11v6" />
+                    <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
                 </svg>
-                <span class="m-l-8">Delete row</span>
+                <span>Delete row</span>
             </button>
         </div>
-        <button type="button" class="ticker correct">
-            0
-        </button>
-        <button type="button" class="ticker incorrect">
-            0
-        </button>
+        <button type="button" class="ticker correct">0</button>
+        <button type="button" class="ticker incorrect">0</button>
     </div>
-    <button type="button" class="flex ai-center" id="add-row">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 16 16">
-            <path fill="currentColor" fill-rule="evenodd"
-                d="M8 0a8 8 0 110 16A8 8 0 018 0zm0 1.067a6.933 6.933 0 100 13.866A6.933 6.933 0 008 1.067zm0 1.475a.48.48 0 01.48.48V7.52h4.498a.48.48 0 110 .96H8.48v4.498a.48.48 0 11-.96 0V8.48H3.022a.48.48 0 110-.96H7.52V3.022a.48.48 0 01.48-.48z"
-                clip-rule="evenodd" />
+
+    <button type="button" id="add-row">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="9" />
+            <line x1="12" y1="8" x2="12" y2="16" />
+            <line x1="8" y1="12" x2="16" y2="12" />
         </svg>
-        <span class="m-l-8">Add row</span>
+        <span>Add row</span>
     </button>
 
     <script src="./main.js"></script>

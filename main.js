@@ -1,7 +1,7 @@
 (() => {
     'use strict';
 
-    const rowWrapper = document.querySelector('.row-wrapper');
+    const rowWrapper = document.getElementById('row-wrapper');
     const template = document.querySelector('.row.template');
     const undoBtn = document.getElementById('undo');
     const clearBtn = document.getElementById('clear');
@@ -9,6 +9,54 @@
 
     const MAX_HISTORY = 100;
     const history = [];
+
+    function reducedMotion() {
+        return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    }
+
+    function playEnter(row) {
+        if (reducedMotion()) return;
+        row.classList.add('row-enter');
+        row.addEventListener('animationend', () => row.classList.remove('row-enter'), { once: true });
+    }
+
+    function playExitThenRemove(row, onDone) {
+        if (row.classList.contains('row-exit')) return;
+
+        if (reducedMotion()) {
+            row.remove();
+            onDone();
+            return;
+        }
+
+        row.style.maxHeight = row.offsetHeight + 'px';
+        row.style.overflow = 'hidden';
+        // Force a reflow so the browser registers the starting height
+        // before the row-exit class animates it down to 0.
+        row.offsetHeight;
+        row.classList.add('row-exit');
+
+        // transitionend fires once per animated property, and they don't all
+        // finish at once (opacity is shorter than max-height) - key off
+        // max-height specifically and ignore the rest instead of using
+        // { once: true }, which would consume the listener on whichever
+        // property happens to finish first.
+        function onTransitionEnd(event) {
+            if (event.propertyName !== 'max-height') return;
+            row.removeEventListener('transitionend', onTransitionEnd);
+            row.remove();
+            onDone();
+        }
+        row.addEventListener('transitionend', onTransitionEnd);
+    }
+
+    function pop(el) {
+        if (reducedMotion()) return;
+        el.classList.remove('pop');
+        el.offsetHeight;
+        el.classList.add('pop');
+        el.addEventListener('animationend', () => el.classList.remove('pop'), { once: true });
+    }
 
     function pushHistory(action) {
         history.push(action);
@@ -37,28 +85,35 @@
         return row;
     }
 
-    function tick(row, kind) {
+    function tick(row, kind, tickBtn) {
         const { correct, incorrect } = getRowCounts(row);
         if (kind === 'correct') {
             renderRow(row, correct + 1, incorrect);
         } else {
             renderRow(row, correct, incorrect + 1);
         }
+        pop(tickBtn);
         pushHistory({ type: 'tick', row, kind });
     }
 
     function deleteRow(row) {
         const nextSibling = row.nextElementSibling;
-        row.remove();
-        pushHistory({ type: 'deleteRow', row, nextSibling });
+        playExitThenRemove(row, () => {
+            pushHistory({ type: 'deleteRow', row, nextSibling });
+        });
     }
 
     function reinsertRow(row, nextSibling) {
+        row.style.maxHeight = '';
+        row.style.overflow = '';
+        row.classList.remove('row-exit');
+
         if (nextSibling && nextSibling.parentNode === rowWrapper) {
             rowWrapper.insertBefore(row, nextSibling);
         } else {
             rowWrapper.appendChild(row);
         }
+        playEnter(row);
     }
 
     function undo() {
@@ -76,7 +131,7 @@
                 break;
             }
             case 'addRow': {
-                action.row.remove();
+                playExitThenRemove(action.row, () => {});
                 break;
             }
             case 'deleteRow': {
@@ -85,7 +140,13 @@
             }
             case 'clear': {
                 Array.from(rowWrapper.querySelectorAll('.row:not(.template)')).forEach((row) => row.remove());
-                action.rows.forEach((row) => rowWrapper.appendChild(row));
+                action.rows.forEach((row) => {
+                    row.style.maxHeight = '';
+                    row.style.overflow = '';
+                    row.classList.remove('row-exit');
+                    rowWrapper.appendChild(row);
+                    playEnter(row);
+                });
                 break;
             }
         }
@@ -97,7 +158,7 @@
         const tickBtn = event.target.closest('.ticker');
         if (tickBtn) {
             const kind = tickBtn.classList.contains('correct') ? 'correct' : 'incorrect';
-            tick(tickBtn.closest('.row'), kind);
+            tick(tickBtn.closest('.row'), kind, tickBtn);
             return;
         }
 
@@ -110,14 +171,26 @@
     addRowBtn.addEventListener('click', () => {
         const row = cloneTemplateRow();
         rowWrapper.appendChild(row);
+        playEnter(row);
         pushHistory({ type: 'addRow', row });
     });
 
     clearBtn.addEventListener('click', () => {
         const rows = Array.from(rowWrapper.querySelectorAll('.row:not(.template)'));
-        rows.forEach((row) => row.remove());
-        rowWrapper.appendChild(cloneTemplateRow());
-        pushHistory({ type: 'clear', rows });
+        if (rows.length === 0) return;
+
+        let remaining = rows.length;
+        rows.forEach((row) => {
+            playExitThenRemove(row, () => {
+                remaining -= 1;
+                if (remaining === 0) {
+                    const freshRow = cloneTemplateRow();
+                    rowWrapper.appendChild(freshRow);
+                    playEnter(freshRow);
+                    pushHistory({ type: 'clear', rows });
+                }
+            });
+        });
     });
 
     undoBtn.addEventListener('click', undo);
