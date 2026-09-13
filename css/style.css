@@ -292,7 +292,8 @@ button:disabled {
   border: 1px solid var(--border);
   background-color: var(--bg);
   color: var(--text);
-  font-size: 15px;
+  /* 16px avoids iOS Safari auto-zooming the page on focus. */
+  font-size: 16px;
   flex: 1 1 96px;
   min-width: 96px;
 }
