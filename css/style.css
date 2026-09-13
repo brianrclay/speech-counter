@@ -177,7 +177,7 @@ button:disabled {
   display: grid;
   grid-template-columns: 1fr var(--ticker-size) var(--ticker-size);
   gap: var(--row-gap);
-  padding: 0 4px 10px;
+  padding: 0 18px 10px;
 }
 
 .column-label {
