@@ -199,7 +199,7 @@ button:disabled {
 .row {
   display: grid;
   grid-template-columns: 1fr var(--ticker-size) var(--ticker-size);
-  align-items: center;
+  align-items: start;
   gap: var(--row-gap);
   background: var(--surface);
   border: 1px solid var(--border);
@@ -294,8 +294,8 @@ button:disabled {
 
 .row-info .stats {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  flex-direction: row;
+  gap: 16px;
   margin-bottom: 10px;
 }
 
