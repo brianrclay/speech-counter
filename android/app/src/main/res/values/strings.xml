@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Speech Counter</string>
-    <string name="title_activity_main">Speech Counter</string>
+    <string name="app_name">Speech Count</string>
+    <string name="title_activity_main">Speech Count</string>
     <string name="package_name">com.speechcounter.app</string>
     <string name="custom_url_scheme">com.speechcounter.app</string>
 </resources>
