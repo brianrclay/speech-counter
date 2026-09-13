@@ -10,6 +10,9 @@
     const MAX_HISTORY = 100;
     const history = [];
 
+    const STORAGE_KEY = 'speech-counter-state-v1';
+    let saveTimer = null;
+
     function reducedMotion() {
         return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     }
@@ -51,7 +54,19 @@
     }
 
     function hapticTap() {
-        // Android Chrome supports short vibrations for tactile feedback;
+        // Inside the Capacitor native shell, window.Capacitor is injected
+        // automatically and routes to real iOS/Android haptics - this is
+        // what actually gets iOS vibrating, since Safari's Vibration API
+        // never did. No import/bundler needed: Capacitor's plugin bridge
+        // is available as a global once running in the native app.
+        const capacitor = window.Capacitor;
+        if (capacitor && capacitor.isNativePlatform && capacitor.isNativePlatform()
+            && capacitor.Plugins && capacitor.Plugins.Haptics) {
+            capacitor.Plugins.Haptics.impact({ style: 'LIGHT' }).catch(() => {});
+            return;
+        }
+
+        // Plain-browser fallback: Android Chrome supports short vibrations;
         // iOS Safari has no Vibration API and silently no-ops here.
         if (typeof navigator.vibrate === 'function') {
             navigator.vibrate(10);
@@ -93,6 +108,59 @@
         return row;
     }
 
+    function serializeRows() {
+        return Array.from(rowWrapper.querySelectorAll('.row:not(.template)')).map((row) => {
+            const inputs = row.querySelectorAll('.name-fields input');
+            const { correct, incorrect } = getRowCounts(row);
+            return {
+                name: inputs[0] ? inputs[0].value : '',
+                target: inputs[1] ? inputs[1].value : '',
+                correct,
+                incorrect,
+            };
+        });
+    }
+
+    // Debounced so typing in a Name/Target field doesn't hit storage on
+    // every keystroke; button actions still feel instant since 150ms is
+    // well under human perception for a "did it save" concern.
+    function saveState() {
+        clearTimeout(saveTimer);
+        saveTimer = setTimeout(() => {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(serializeRows()));
+            } catch (err) {
+                // Storage can be unavailable (private browsing, full, disabled) - not fatal.
+            }
+        }, 150);
+    }
+
+    function buildRowFromData(data) {
+        const row = cloneTemplateRow();
+        const inputs = row.querySelectorAll('.name-fields input');
+        if (inputs[0]) inputs[0].value = data.name || '';
+        if (inputs[1]) inputs[1].value = data.target || '';
+        renderRow(row, data.correct || 0, data.incorrect || 0);
+        return row;
+    }
+
+    function loadState() {
+        let saved;
+        try {
+            saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+        } catch (err) {
+            saved = null;
+        }
+        // Only bail when nothing has ever been saved (null/invalid JSON) -
+        // an empty array is a legitimate saved state (the user deleted
+        // every row) and should be restored as empty, not backfilled with
+        // the default blank row from the markup.
+        if (!Array.isArray(saved)) return;
+
+        rowWrapper.querySelectorAll('.row:not(.template)').forEach((row) => row.remove());
+        saved.forEach((data) => rowWrapper.appendChild(buildRowFromData(data)));
+    }
+
     function tick(row, kind, tickBtn) {
         const { correct, incorrect } = getRowCounts(row);
         if (kind === 'correct') {
@@ -103,12 +171,14 @@
         pop(tickBtn);
         hapticTap();
         pushHistory({ type: 'tick', row, kind });
+        saveState();
     }
 
     function deleteRow(row) {
         const nextSibling = row.nextElementSibling;
         playExitThenRemove(row, () => {
             pushHistory({ type: 'deleteRow', row, nextSibling });
+            saveState();
         });
     }
 
@@ -140,7 +210,7 @@
                 break;
             }
             case 'addRow': {
-                playExitThenRemove(action.row, () => {});
+                playExitThenRemove(action.row, () => saveState());
                 break;
             }
             case 'deleteRow': {
@@ -161,6 +231,7 @@
         }
 
         undoBtn.disabled = history.length === 0;
+        saveState();
     }
 
     rowWrapper.addEventListener('click', (event) => {
@@ -177,11 +248,18 @@
         }
     });
 
+    rowWrapper.addEventListener('input', (event) => {
+        if (event.target.matches('.name-fields input')) {
+            saveState();
+        }
+    });
+
     addRowBtn.addEventListener('click', () => {
         const row = cloneTemplateRow();
         rowWrapper.appendChild(row);
         playEnter(row);
         pushHistory({ type: 'addRow', row });
+        saveState();
     });
 
     clearBtn.addEventListener('click', () => {
@@ -197,12 +275,15 @@
                     rowWrapper.appendChild(freshRow);
                     playEnter(freshRow);
                     pushHistory({ type: 'clear', rows });
+                    saveState();
                 }
             });
         });
     });
 
     undoBtn.addEventListener('click', undo);
+
+    loadState();
 
     document.addEventListener('keydown', (event) => {
         if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'z') {

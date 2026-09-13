@@ -447,3 +447,19 @@ button:disabled {
 #add-row:active {
   transform: scale(0.97);
 }
+
+.app-footer {
+  margin-top: 32px;
+  padding-top: 16px;
+  text-align: center;
+}
+
+.app-footer a {
+  color: var(--text-muted);
+  font-size: 13px;
+  text-decoration: underline;
+}
+
+.app-footer a:hover {
+  color: var(--accent);
+}
