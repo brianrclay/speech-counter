@@ -75,20 +75,6 @@ body {
   body {
     padding: 20px 14px 48px;
   }
-
-  .app-title {
-    font-size: 19px;
-  }
-
-  /* Keep Undo/Clear compact enough to always stay in the same row
-     as the title instead of wrapping onto their own line. */
-  .app-actions .btn span {
-    display: none;
-  }
-
-  .app-actions .btn {
-    padding: 10px;
-  }
 }
 
 div,
@@ -184,6 +170,48 @@ button:disabled {
 
 .btn-ghost:hover {
   color: var(--accent-hover);
+}
+
+@media (max-width: 500px) {
+  .app-header {
+    gap: 10px;
+  }
+
+  .app-title {
+    font-size: 17px;
+  }
+
+  /* Shrink Undo/Clear (padding, gap, icon, text) rather than hiding
+     their labels, so they still fit in the same row as the title. */
+  .app-actions {
+    gap: 4px;
+  }
+
+  .app-actions .btn {
+    padding: 8px 10px;
+    gap: 5px;
+    min-height: 38px;
+    font-size: 13px;
+  }
+
+  .app-actions .btn .icon {
+    width: 15px;
+    height: 15px;
+  }
+}
+
+@media (max-width: 360px) {
+  .app-header {
+    gap: 6px;
+  }
+
+  .app-title {
+    font-size: 15px;
+  }
+
+  .app-actions .btn {
+    padding: 7px 8px;
+  }
 }
 
 /* Column labels */
