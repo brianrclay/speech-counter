@@ -8,7 +8,7 @@ const path = require('path');
 const root = path.join(__dirname, '..');
 const outDir = path.join(root, 'www');
 
-const entries = ['index.html', 'main.js', 'css', 'assets'];
+const entries = ['index.html', 'privacy.html', 'main.js', 'css', 'assets'];
 
 fs.rmSync(outDir, { recursive: true, force: true });
 fs.mkdirSync(outDir, { recursive: true });
