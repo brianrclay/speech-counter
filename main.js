@@ -54,7 +54,19 @@
     }
 
     function hapticTap() {
-        // Android Chrome supports short vibrations for tactile feedback;
+        // Inside the Capacitor native shell, window.Capacitor is injected
+        // automatically and routes to real iOS/Android haptics - this is
+        // what actually gets iOS vibrating, since Safari's Vibration API
+        // never did. No import/bundler needed: Capacitor's plugin bridge
+        // is available as a global once running in the native app.
+        const capacitor = window.Capacitor;
+        if (capacitor && capacitor.isNativePlatform && capacitor.isNativePlatform()
+            && capacitor.Plugins && capacitor.Plugins.Haptics) {
+            capacitor.Plugins.Haptics.impact({ style: 'LIGHT' }).catch(() => {});
+            return;
+        }
+
+        // Plain-browser fallback: Android Chrome supports short vibrations;
         // iOS Safari has no Vibration API and silently no-ops here.
         if (typeof navigator.vibrate === 'function') {
             navigator.vibrate(10);
