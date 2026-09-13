@@ -50,6 +50,14 @@
         row.addEventListener('transitionend', onTransitionEnd);
     }
 
+    function hapticTap() {
+        // Android Chrome supports short vibrations for tactile feedback;
+        // iOS Safari has no Vibration API and silently no-ops here.
+        if (typeof navigator.vibrate === 'function') {
+            navigator.vibrate(10);
+        }
+    }
+
     function pop(el) {
         if (reducedMotion()) return;
         el.classList.remove('pop');
@@ -93,6 +101,7 @@
             renderRow(row, correct, incorrect + 1);
         }
         pop(tickBtn);
+        hapticTap();
         pushHistory({ type: 'tick', row, kind });
     }
 

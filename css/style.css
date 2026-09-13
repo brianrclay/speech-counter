@@ -117,7 +117,7 @@ button:disabled {
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   padding-bottom: 20px;
 }
 
@@ -126,6 +126,7 @@ button:disabled {
   font-size: 22px;
   font-weight: 800;
   letter-spacing: -0.2px;
+  white-space: nowrap;
 }
 
 .app-actions {
@@ -171,13 +172,55 @@ button:disabled {
   color: var(--accent-hover);
 }
 
+@media (max-width: 500px) {
+  .app-header {
+    gap: 10px;
+  }
+
+  .app-title {
+    font-size: 17px;
+  }
+
+  /* Shrink Undo/Clear (padding, gap, icon, text) rather than hiding
+     their labels, so they still fit in the same row as the title. */
+  .app-actions {
+    gap: 4px;
+  }
+
+  .app-actions .btn {
+    padding: 8px 10px;
+    gap: 5px;
+    min-height: 38px;
+    font-size: 13px;
+  }
+
+  .app-actions .btn .icon {
+    width: 15px;
+    height: 15px;
+  }
+}
+
+@media (max-width: 360px) {
+  .app-header {
+    gap: 6px;
+  }
+
+  .app-title {
+    font-size: 15px;
+  }
+
+  .app-actions .btn {
+    padding: 7px 8px;
+  }
+}
+
 /* Column labels */
 
 .columns {
   display: grid;
   grid-template-columns: 1fr var(--ticker-size) var(--ticker-size);
   gap: var(--row-gap);
-  padding: 0 4px 10px;
+  padding: 0 18px 10px;
 }
 
 .column-label {
@@ -199,7 +242,7 @@ button:disabled {
 .row {
   display: grid;
   grid-template-columns: 1fr var(--ticker-size) var(--ticker-size);
-  align-items: center;
+  align-items: start;
   gap: var(--row-gap);
   background: var(--surface);
   border: 1px solid var(--border);
@@ -263,16 +306,24 @@ button:disabled {
   min-width: 0;
 }
 
+.name-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  width: 100%;
+  margin-bottom: 12px;
+}
+
 .row-info input {
   padding: 10px 12px;
   border-radius: 10px;
   border: 1px solid var(--border);
   background-color: var(--bg);
   color: var(--text);
-  width: 100%;
-  max-width: 160px;
-  font-size: 15px;
-  margin-bottom: 12px;
+  /* 16px avoids iOS Safari auto-zooming the page on focus. */
+  font-size: 16px;
+  flex: 1 1 96px;
+  min-width: 96px;
 }
 
 .row-info input::placeholder {
@@ -287,8 +338,8 @@ button:disabled {
 
 .row-info .stats {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  flex-direction: row;
+  gap: 16px;
   margin-bottom: 10px;
 }
 
