@@ -703,8 +703,23 @@ button:disabled {
   line-height: 1.6;
 }
 
-#add-student {
-  margin-top: 16px;
+.list-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: var(--row-gap);
+}
+
+.list-toolbar .student-search {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin-bottom: 0;
+}
+
+.list-toolbar .add-btn {
+  flex-shrink: 0;
+  margin-top: 0;
+  white-space: nowrap;
 }
 
 .add-student-form {
@@ -712,11 +727,12 @@ button:disabled {
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
-  margin-top: 16px;
+  margin-bottom: var(--row-gap);
 }
 
 .add-student-form input {
-  flex: 1 1 160px;
+  flex: 1 1 120px;
+  min-width: 0;
   padding: 12px 14px;
   border-radius: var(--radius-md);
   border: 1px solid var(--border);

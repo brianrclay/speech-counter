@@ -60,27 +60,29 @@
     </header>
 
     <section id="list-view">
-        <input type="search" id="student-search" class="student-search" placeholder="Search students" autocomplete="off">
-        <div id="student-list" class="student-list"></div>
-        <p id="empty-state" class="empty-state" hidden>
-            No students yet. Add one below, or type a name on the board and tap Correct or Incorrect -
-            the student and their session are saved automatically.
-        </p>
-        <p id="no-matches" class="empty-state" hidden>No students match that search.</p>
+        <div class="list-toolbar">
+            <input type="search" id="student-search" class="student-search" placeholder="Search students" autocomplete="off">
+            <button type="button" id="add-student" class="add-btn" aria-label="Add student">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="9" />
+                    <line x1="12" y1="8" x2="12" y2="16" />
+                    <line x1="8" y1="12" x2="16" y2="12" />
+                </svg>
+                <span>Add</span>
+            </button>
+        </div>
         <form id="add-student-form" class="add-student-form" hidden>
             <input type="text" id="new-student-name" placeholder="Student name" autocomplete="off" maxlength="80">
             <button type="submit" class="add-btn">Add</button>
             <button type="button" id="cancel-add-student" class="btn btn-ghost">Cancel</button>
         </form>
-        <button type="button" id="add-student" class="add-btn">
-            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="9" />
-                <line x1="12" y1="8" x2="12" y2="16" />
-                <line x1="8" y1="12" x2="16" y2="12" />
-            </svg>
-            <span>Add student</span>
-        </button>
+        <div id="student-list" class="student-list"></div>
+        <p id="empty-state" class="empty-state" hidden>
+            No students yet. Add one above, or type a name on the board and tap Correct or Incorrect -
+            the student and their session are saved automatically.
+        </p>
+        <p id="no-matches" class="empty-state" hidden>No students match that search.</p>
     </section>
 
     <section id="detail-view" hidden>
