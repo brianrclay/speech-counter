@@ -547,7 +547,7 @@ button:disabled {
   }
 }
 
-#add-row {
+.add-btn {
   display: inline-flex;
   align-items: center;
   align-self: flex-start;
@@ -562,12 +562,12 @@ button:disabled {
   transition: background-color 160ms var(--ease), color 160ms var(--ease), transform 120ms var(--ease);
 }
 
-#add-row:hover {
+.add-btn:hover {
   background-color: var(--accent);
   color: #ffffff;
 }
 
-#add-row:active {
+.add-btn:active {
   transform: scale(0.97);
 }
 
@@ -701,6 +701,42 @@ button:disabled {
   text-align: center;
   color: var(--text-muted);
   line-height: 1.6;
+}
+
+#add-student {
+  margin-top: 16px;
+}
+
+.add-student-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.add-student-form input {
+  flex: 1 1 160px;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background-color: var(--surface);
+  color: var(--text);
+  font-size: 16px;
+}
+
+.add-student-form input::placeholder {
+  color: var(--text-muted);
+}
+
+.add-student-form input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.add-student-form .add-btn {
+  margin-top: 0;
 }
 
 .back-link {

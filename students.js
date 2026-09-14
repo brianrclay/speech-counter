@@ -20,6 +20,10 @@
     const exportBtn = document.getElementById('export');
     const importFile = document.getElementById('import-file');
     const template = document.querySelector('.row.template');
+    const addStudentBtn = document.getElementById('add-student');
+    const addStudentForm = document.getElementById('add-student-form');
+    const newStudentName = document.getElementById('new-student-name');
+    const cancelAddStudent = document.getElementById('cancel-add-student');
 
     const dayFormat = new Intl.DateTimeFormat(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
     const shortDayFormat = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
@@ -142,6 +146,46 @@
     }
 
     searchInput.addEventListener('input', renderList);
+
+    function showAddStudent(show) {
+        addStudentForm.hidden = !show;
+        addStudentBtn.hidden = show;
+        if (show) {
+            newStudentName.value = '';
+            newStudentName.focus();
+        }
+    }
+
+    addStudentBtn.addEventListener('click', () => showAddStudent(true));
+    cancelAddStudent.addEventListener('click', () => showAddStudent(false));
+
+    newStudentName.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+            showAddStudent(false);
+        } else if (event.key === 'Enter') {
+            event.preventDefault();
+            addStudent();
+        }
+    });
+
+    addStudentForm.addEventListener('submit', (event) => {
+        event.preventDefault();
+        addStudent();
+    });
+
+    function addStudent() {
+        const name = newStudentName.value.trim();
+        if (!name) {
+            newStudentName.focus();
+            return;
+        }
+        const existing = store.students.findByName(name);
+        store.students.findOrCreate(name);
+        showAddStudent(false);
+        searchInput.value = '';
+        renderList();
+        if (existing) alert(existing.name + ' is already in your roster.');
+    }
 
     renameBtn.addEventListener('click', () => {
         const student = store.students.get(currentId);
