@@ -186,6 +186,7 @@
         row.style.maxHeight = '';
         row.style.overflow = '';
         row.classList.remove('row-exit');
+        swipe.reset(row);
 
         if (nextSibling && nextSibling.parentNode === rowWrapper) {
             rowWrapper.insertBefore(row, nextSibling);
@@ -223,6 +224,7 @@
                     row.style.maxHeight = '';
                     row.style.overflow = '';
                     row.classList.remove('row-exit');
+                    swipe.reset(row);
                     rowWrapper.appendChild(row);
                     playEnter(row);
                 });
@@ -234,11 +236,185 @@
         saveState();
     }
 
+    // Touch swipe-to-remove, iOS Mail style: dragging a row leftwards slides
+    // its body over a Remove action on the right edge. A short swipe snaps
+    // the action open; a long swipe or a quick fling carries the row off
+    // and removes it. Mouse pointers are ignored - the Remove button covers
+    // desktop.
+    const swipe = (() => {
+        const OPEN_WIDTH = 104;
+        const DECIDE_DISTANCE = 8;
+        const COMMIT_FRACTION = 0.55;
+        const FLING_VELOCITY = 0.6;
+        let openRow = null;
+        let drag = null;
+        let suppressClick = false;
+        let suppressTimer = null;
+
+        const bodyOf = (row) => row.querySelector('.row-body');
+        const actionOf = (row) => row.querySelector('.row-swipe-action');
+
+        function suppressNextClick() {
+            suppressClick = true;
+            clearTimeout(suppressTimer);
+            suppressTimer = setTimeout(() => { suppressClick = false; }, 400);
+        }
+
+        function setOffset(row, x) {
+            bodyOf(row).style.transform = x ? 'translateX(' + x + 'px)' : '';
+            actionOf(row).style.width = -x > OPEN_WIDTH ? -x + 'px' : '';
+        }
+
+        function reset(row) {
+            bodyOf(row).classList.remove('swiping');
+            bodyOf(row).style.transform = '';
+            actionOf(row).style.width = '';
+            actionOf(row).classList.remove('will-remove');
+            if (openRow === row) openRow = null;
+        }
+
+        function open(row) {
+            if (openRow && openRow !== row) reset(openRow);
+            openRow = row;
+            bodyOf(row).classList.remove('swiping');
+            actionOf(row).classList.remove('will-remove');
+            setOffset(row, -OPEN_WIDTH);
+        }
+
+        function commit(row) {
+            if (openRow === row) openRow = null;
+            const body = bodyOf(row);
+            actionOf(row).classList.add('will-remove');
+            body.classList.remove('swiping');
+            if (reducedMotion()) {
+                deleteRow(row);
+                return;
+            }
+            function onSlideEnd(event) {
+                if (event.propertyName !== 'transform') return;
+                body.removeEventListener('transitionend', onSlideEnd);
+                deleteRow(row);
+            }
+            body.addEventListener('transitionend', onSlideEnd);
+            setOffset(row, -row.offsetWidth);
+        }
+
+        function currentOffset(d) {
+            return Math.min(0, d.startOffset + (d.lastX - d.startX));
+        }
+
+        rowWrapper.addEventListener('pointerdown', (event) => {
+            if (event.pointerType === 'mouse' || event.button !== 0) return;
+            if (event.target.closest('.row-swipe-action')) return;
+            const body = event.target.closest('.row-body');
+            if (openRow && (!body || body.closest('.row') !== openRow)) reset(openRow);
+            if (!body) return;
+            const row = body.closest('.row');
+            if (row.classList.contains('row-exit')) return;
+            drag = {
+                row,
+                body,
+                pointerId: event.pointerId,
+                startX: event.clientX,
+                startY: event.clientY,
+                lastX: event.clientX,
+                lastT: event.timeStamp,
+                velocity: 0,
+                startOffset: openRow === row ? -OPEN_WIDTH : 0,
+                active: false,
+            };
+        });
+
+        rowWrapper.addEventListener('pointermove', (event) => {
+            if (!drag || event.pointerId !== drag.pointerId) return;
+            const dx = event.clientX - drag.startX;
+            const dy = event.clientY - drag.startY;
+
+            if (!drag.active) {
+                if (Math.abs(dy) > DECIDE_DISTANCE && Math.abs(dy) > Math.abs(dx)) {
+                    drag = null;
+                    return;
+                }
+                if (Math.abs(dx) < DECIDE_DISTANCE) return;
+                drag.active = true;
+                drag.body.classList.add('swiping');
+                drag.body.setPointerCapture(event.pointerId);
+            }
+
+            const dt = event.timeStamp - drag.lastT;
+            if (dt > 0) drag.velocity = (event.clientX - drag.lastX) / dt;
+            drag.lastX = event.clientX;
+            drag.lastT = event.timeStamp;
+
+            const offset = currentOffset(drag);
+            setOffset(drag.row, offset);
+
+            const action = actionOf(drag.row);
+            const willRemove = -offset > drag.row.offsetWidth * COMMIT_FRACTION;
+            if (willRemove !== action.classList.contains('will-remove')) {
+                action.classList.toggle('will-remove', willRemove);
+                hapticTap();
+            }
+        });
+
+        function endDrag(event) {
+            if (!drag || event.pointerId !== drag.pointerId) return;
+            const d = drag;
+            drag = null;
+
+            if (!d.active) {
+                // A plain tap on an open row just closes it.
+                if (openRow === d.row) {
+                    reset(d.row);
+                    suppressNextClick();
+                }
+                return;
+            }
+
+            suppressNextClick();
+            d.body.classList.remove('swiping');
+            const offset = currentOffset(d);
+            const width = d.row.offsetWidth;
+            const flungLeft = d.velocity < -FLING_VELOCITY;
+            const flungRight = d.velocity > FLING_VELOCITY;
+
+            if (event.type === 'pointercancel') {
+                reset(d.row);
+            } else if (-offset > width * COMMIT_FRACTION || (flungLeft && -offset > OPEN_WIDTH)) {
+                commit(d.row);
+            } else if (-offset > OPEN_WIDTH / 2 && !flungRight) {
+                open(d.row);
+            } else {
+                reset(d.row);
+            }
+        }
+        rowWrapper.addEventListener('pointerup', endDrag);
+        rowWrapper.addEventListener('pointercancel', endDrag);
+
+        // The click that follows a swipe (or a tap that closed a row) must
+        // not land on a ticker or input underneath.
+        rowWrapper.addEventListener('click', (event) => {
+            if (!suppressClick) return;
+            suppressClick = false;
+            clearTimeout(suppressTimer);
+            event.stopPropagation();
+            event.preventDefault();
+        }, true);
+
+        return { reset, commit };
+    })();
+
     rowWrapper.addEventListener('click', (event) => {
         const tickBtn = event.target.closest('.ticker');
         if (tickBtn) {
             const kind = tickBtn.classList.contains('correct') ? 'correct' : 'incorrect';
             tick(tickBtn.closest('.row'), kind, tickBtn);
+            return;
+        }
+
+        const swipeBtn = event.target.closest('.row-swipe-action');
+        if (swipeBtn) {
+            swipe.commit(swipeBtn.closest('.row'));
             return;
         }
 
