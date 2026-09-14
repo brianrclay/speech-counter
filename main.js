@@ -300,20 +300,40 @@
         }
     });
 
-    // Roster suggestions for whichever Name field is focused, rendered as a
-    // chip strip inside that row rather than a floating popover: anything
-    // positioned against the viewport drifts when the on-screen keyboard
-    // scrolls the page, whereas in-flow content just moves with the row.
+    // Searchable roster dropdown under whichever Name field is focused. One
+    // shared popover on <body> (.row clips overflow for its exit animation),
+    // placed with position: absolute in document coordinates rather than
+    // fixed: the iOS keyboard shifts the viewport, which drags a fixed
+    // element away from its input, whereas a page-anchored one scrolls with
+    // the row.
     const suggestions = (() => {
         const list = document.createElement('div');
         list.id = 'name-suggestions';
         list.className = 'name-suggestions';
         list.setAttribute('role', 'listbox');
+        list.hidden = true;
+        document.body.appendChild(list);
 
         let input = null;
         let items = [];
         let active = -1;
         let closeTimer = null;
+
+        function position() {
+            if (!input) return;
+            const rect = input.getBoundingClientRect();
+            list.style.left = rect.left + window.scrollX + 'px';
+            list.style.top = rect.bottom + 4 + window.scrollY + 'px';
+            list.style.minWidth = rect.width + 'px';
+        }
+
+        // With the keyboard up, iOS scrolls the input into the visible area
+        // but not necessarily the space below it; nudge the page so the
+        // list shows too.
+        function reveal() {
+            if (list.hidden) return;
+            list.scrollIntoView({ block: 'nearest' });
+        }
 
         function matches(query) {
             const key = store.nameKey(query);
@@ -331,7 +351,7 @@
                 el.setAttribute('aria-selected', i === active ? 'true' : 'false');
             });
             input.setAttribute('aria-activedescendant', active >= 0 ? list.children[active].id : '');
-            if (active >= 0) list.children[active].scrollIntoView({ block: 'nearest', inline: 'nearest' });
+            if (active >= 0) list.children[active].scrollIntoView({ block: 'nearest' });
         }
 
         function close() {
@@ -339,7 +359,7 @@
             if (!input) return;
             input.setAttribute('aria-expanded', 'false');
             input.removeAttribute('aria-activedescendant');
-            list.remove();
+            list.hidden = true;
             list.textContent = '';
             input = null;
             items = [];
@@ -352,25 +372,24 @@
             input = target;
             items = matches(input.value);
             if (items.length === 0) {
-                list.remove();
+                list.hidden = true;
                 list.textContent = '';
                 input.setAttribute('aria-expanded', 'false');
                 return;
             }
             list.textContent = '';
             items.forEach((student, i) => {
-                const option = document.createElement('button');
-                option.type = 'button';
-                option.tabIndex = -1;
+                const option = document.createElement('div');
                 option.className = 'name-suggestion';
                 option.id = 'name-suggestion-' + i;
                 option.setAttribute('role', 'option');
                 option.textContent = student.name;
                 list.appendChild(option);
             });
-            input.closest('.name-fields').after(list);
+            list.hidden = false;
             input.setAttribute('aria-expanded', 'true');
             setActive(-1);
+            position();
         }
 
         function choose(index) {
@@ -381,9 +400,9 @@
             commitName(row);
         }
 
-        // Keep the input focused while a chip is tapped so the strip isn't
+        // Keep the input focused while an option is tapped so the list isn't
         // torn down before the click lands; selection itself waits for the
-        // click so a swipe to scroll the strip doesn't pick a name.
+        // click so a swipe to scroll the list doesn't pick a name.
         list.addEventListener('pointerdown', (event) => event.preventDefault());
         list.addEventListener('click', (event) => {
             const option = event.target.closest('.name-suggestion');
@@ -391,7 +410,10 @@
         });
 
         rowWrapper.addEventListener('focusin', (event) => {
-            if (event.target.matches('.name-fields input:first-child')) update(event.target);
+            if (!event.target.matches('.name-fields input:first-child')) return;
+            update(event.target);
+            // Give the keyboard a moment to open and settle the scroll.
+            setTimeout(reveal, 350);
         });
 
         rowWrapper.addEventListener('focusout', (event) => {
@@ -401,7 +423,7 @@
         });
 
         rowWrapper.addEventListener('keydown', (event) => {
-            if (event.target !== input || !list.isConnected) return;
+            if (event.target !== input || list.hidden) return;
             switch (event.key) {
                 case 'ArrowDown':
                     event.preventDefault();
@@ -423,6 +445,14 @@
                     break;
             }
         });
+
+        window.addEventListener('resize', position);
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', () => {
+                position();
+                reveal();
+            });
+        }
 
         return { update };
     })();
