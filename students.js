@@ -30,6 +30,7 @@
     const bulkCount = document.getElementById('bulk-count');
     const bulkDelete = document.getElementById('bulk-delete');
     const bulkDone = document.getElementById('bulk-done');
+    const swipeActionTemplate = document.getElementById('student-swipe-action').content.firstElementChild;
 
     const dayFormat = new Intl.DateTimeFormat(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
     const shortDayFormat = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
@@ -60,6 +61,11 @@
 
         studentList.textContent = '';
         students.forEach(({ student, summary }) => {
+            const item = document.createElement('div');
+            item.className = 'student-item';
+            item.dataset.id = student.id;
+            item.appendChild(swipeActionTemplate.cloneNode(true));
+
             const card = document.createElement('a');
             card.className = 'student-card';
             card.href = '#student/' + student.id;
@@ -85,7 +91,8 @@
             percent.textContent = summary.trials === 0 ? '–' : summary.percent + '%';
 
             card.append(check, name, meta, percent);
-            studentList.appendChild(card);
+            item.appendChild(card);
+            studentList.appendChild(item);
         });
 
         const total = store.students.list().length;
@@ -103,6 +110,7 @@
         studentList.querySelectorAll('.student-card').forEach((card) => {
             const isSelected = selecting && selected.has(card.dataset.id);
             card.classList.toggle('selected', isSelected);
+            card.parentElement.classList.toggle('selected', isSelected);
             if (selecting) {
                 card.setAttribute('role', 'checkbox');
                 card.setAttribute('aria-checked', isSelected ? 'true' : 'false');
@@ -198,6 +206,29 @@
         if (!selecting) return;
         event.preventDefault();
         toggleSelected(card.dataset.id);
+    });
+
+    // Swiping a card left works like the board rows, but deleting a student
+    // is permanent, so a committed swipe asks first and slides back if the
+    // user declines.
+    const cardSwipe = window.SpeechSwipe.attach({
+        container: studentList,
+        item: '.student-item',
+        body: '.student-card',
+        action: '.row-swipe-action',
+        isDisabled: () => selecting,
+        onRemove: (item) => {
+            const student = store.students.get(item.dataset.id);
+            if (!student) return;
+            const summary = store.sessions.summary(student.id);
+            const detail = summary.count === 0 ? '' : ' and their ' + plural(summary.count, 'session');
+            if (!confirm('Delete ' + student.name + detail + '? This cannot be undone.')) {
+                cardSwipe.reset(item);
+                return;
+            }
+            store.students.remove(student.id);
+            renderList();
+        },
     });
 
     bulkSelectAll.addEventListener('click', () => {

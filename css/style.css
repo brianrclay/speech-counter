@@ -385,6 +385,7 @@ button:disabled {
   .row.row-enter,
   .row.row-exit,
   .row-body,
+  .student-card,
   .ticker.pop {
     animation: none !important;
     transition: none !important;
@@ -647,7 +648,23 @@ button:disabled {
   gap: 10px;
 }
 
+.student-item {
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  transition: border-color 160ms var(--ease);
+}
+
+.student-item.selected {
+  border-color: var(--accent);
+}
+
 .student-card {
+  position: relative;
+  z-index: 1;
   display: grid;
   grid-template-columns: 1fr auto;
   grid-template-areas:
@@ -658,14 +675,16 @@ button:disabled {
   align-items: center;
   padding: 16px 18px;
   background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
   text-decoration: none;
   -webkit-touch-callout: none;
   -webkit-user-select: none;
   user-select: none;
-  transition: background-color 160ms var(--ease), transform 120ms var(--ease), border-color 160ms var(--ease);
+  touch-action: pan-y;
+  transition: background-color 160ms var(--ease), transform 260ms var(--ease);
+}
+
+.student-card.swiping {
+  transition: background-color 160ms var(--ease);
 }
 
 .student-check {
@@ -705,7 +724,6 @@ button:disabled {
 }
 
 .student-card.selected {
-  border-color: var(--accent);
   background-color: var(--accent-soft);
 }
 
@@ -749,12 +767,10 @@ button:disabled {
   background-color: var(--incorrect-soft);
 }
 
-.student-card:hover {
-  background-color: var(--surface-hover);
-}
-
-.student-card:active {
-  transform: scale(0.99);
+@media (hover: hover) {
+  .student-card:hover {
+    background-color: var(--surface-hover);
+  }
 }
 
 .student-card-name {
