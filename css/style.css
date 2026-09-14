@@ -662,7 +662,91 @@ button:disabled {
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
   text-decoration: none;
-  transition: background-color 160ms var(--ease), transform 120ms var(--ease);
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  transition: background-color 160ms var(--ease), transform 120ms var(--ease), border-color 160ms var(--ease);
+}
+
+.student-check {
+  display: none;
+  grid-area: check;
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--border);
+  border-radius: 50%;
+  background: var(--bg);
+  position: relative;
+  transition: background-color 160ms var(--ease), border-color 160ms var(--ease);
+}
+
+.student-check::after {
+  content: '';
+  position: absolute;
+  left: 7px;
+  top: 3px;
+  width: 6px;
+  height: 11px;
+  border: solid #ffffff;
+  border-width: 0 2.5px 2.5px 0;
+  transform: rotate(45deg);
+  opacity: 0;
+}
+
+.student-list.selecting .student-card {
+  grid-template-columns: auto 1fr auto;
+  grid-template-areas:
+    "check name percent"
+    "check meta percent";
+}
+
+.student-list.selecting .student-check {
+  display: block;
+}
+
+.student-card.selected {
+  border-color: var(--accent);
+  background-color: var(--accent-soft);
+}
+
+.student-card.selected .student-check {
+  border-color: var(--accent);
+  background-color: var(--accent);
+}
+
+.student-card.selected .student-check::after {
+  opacity: 1;
+}
+
+.bulk-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: var(--row-gap);
+  min-height: 46px;
+}
+
+.bulk-count {
+  flex: 1 1 auto;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.bulk-toolbar .btn {
+  padding: 8px 12px;
+  min-height: 40px;
+  white-space: nowrap;
+}
+
+.bulk-delete {
+  color: var(--incorrect);
+}
+
+.bulk-delete:hover {
+  color: var(--incorrect);
+  background-color: var(--incorrect-soft);
 }
 
 .student-card:hover {

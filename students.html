@@ -72,6 +72,12 @@
                 <span>Add</span>
             </button>
         </div>
+        <div id="bulk-toolbar" class="bulk-toolbar" hidden>
+            <button type="button" id="bulk-select-all" class="btn">Select all</button>
+            <span id="bulk-count" class="bulk-count" aria-live="polite">0 selected</span>
+            <button type="button" id="bulk-delete" class="btn bulk-delete" disabled>Delete</button>
+            <button type="button" id="bulk-done" class="btn btn-ghost">Done</button>
+        </div>
         <form id="add-student-form" class="add-student-form" hidden>
             <input type="text" id="new-student-name" placeholder="Student name" autocomplete="off" maxlength="80">
             <button type="submit" class="add-btn">Add</button>

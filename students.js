@@ -24,12 +24,20 @@
     const addStudentForm = document.getElementById('add-student-form');
     const newStudentName = document.getElementById('new-student-name');
     const cancelAddStudent = document.getElementById('cancel-add-student');
+    const listToolbar = document.querySelector('.list-toolbar');
+    const bulkToolbar = document.getElementById('bulk-toolbar');
+    const bulkSelectAll = document.getElementById('bulk-select-all');
+    const bulkCount = document.getElementById('bulk-count');
+    const bulkDelete = document.getElementById('bulk-delete');
+    const bulkDone = document.getElementById('bulk-done');
 
     const dayFormat = new Intl.DateTimeFormat(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
     const shortDayFormat = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
     const timeFormat = new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' });
 
     let currentId = null;
+    let selecting = false;
+    const selected = new Set();
 
     function percentOf(correct, incorrect) {
         const total = correct + incorrect;
@@ -55,6 +63,12 @@
             const card = document.createElement('a');
             card.className = 'student-card';
             card.href = '#student/' + student.id;
+            card.dataset.id = student.id;
+            card.draggable = false;
+
+            const check = document.createElement('span');
+            check.className = 'student-check';
+            check.setAttribute('aria-hidden', 'true');
 
             const name = document.createElement('span');
             name.className = 'student-card-name';
@@ -70,14 +84,145 @@
             percent.className = 'student-card-percent';
             percent.textContent = summary.trials === 0 ? '–' : summary.percent + '%';
 
-            card.append(name, meta, percent);
+            card.append(check, name, meta, percent);
             studentList.appendChild(card);
         });
 
         const total = store.students.list().length;
         emptyState.hidden = total !== 0;
         noMatches.hidden = total === 0 || students.length !== 0;
+        applySelection();
     }
+
+    // Long-pressing a student enters selection mode for bulk deletion;
+    // tapping cards then toggles them instead of opening them. Selection
+    // changes update the existing cards in place so the card under the
+    // user's finger survives the transition.
+    function applySelection() {
+        studentList.classList.toggle('selecting', selecting);
+        studentList.querySelectorAll('.student-card').forEach((card) => {
+            const isSelected = selecting && selected.has(card.dataset.id);
+            card.classList.toggle('selected', isSelected);
+            if (selecting) {
+                card.setAttribute('role', 'checkbox');
+                card.setAttribute('aria-checked', isSelected ? 'true' : 'false');
+            } else {
+                card.removeAttribute('role');
+                card.removeAttribute('aria-checked');
+            }
+        });
+        renderBulkToolbar();
+    }
+
+    function renderBulkToolbar() {
+        bulkToolbar.hidden = !selecting;
+        listToolbar.hidden = selecting;
+        if (!selecting) return;
+        const total = store.students.list().length;
+        bulkCount.textContent = selected.size + ' selected';
+        bulkSelectAll.textContent = selected.size === total && total > 0 ? 'Deselect all' : 'Select all';
+        bulkDelete.disabled = selected.size === 0;
+        bulkDelete.textContent = selected.size === 0 ? 'Delete' : 'Delete (' + selected.size + ')';
+    }
+
+    function enterSelectMode(id) {
+        selecting = true;
+        selected.clear();
+        if (id) selected.add(id);
+        showAddStudent(false);
+        applySelection();
+    }
+
+    function exitSelectMode() {
+        selecting = false;
+        selected.clear();
+        renderList();
+    }
+
+    function toggleSelected(id) {
+        if (selected.has(id)) selected.delete(id);
+        else selected.add(id);
+        applySelection();
+    }
+
+    const LONG_PRESS_MS = 500;
+    let press = null;
+    let suppressCardClick = false;
+
+    function cancelPress() {
+        if (!press) return;
+        clearTimeout(press.timer);
+        press = null;
+    }
+
+    studentList.addEventListener('pointerdown', (event) => {
+        const card = event.target.closest('.student-card');
+        if (!card || event.button !== 0) return;
+        cancelPress();
+        suppressCardClick = false;
+        press = {
+            id: card.dataset.id,
+            x: event.clientX,
+            y: event.clientY,
+            timer: setTimeout(() => {
+                press = null;
+                suppressCardClick = true;
+                if (selecting) toggleSelected(card.dataset.id);
+                else enterSelectMode(card.dataset.id);
+            }, LONG_PRESS_MS),
+        };
+    });
+
+    studentList.addEventListener('pointermove', (event) => {
+        if (!press) return;
+        if (Math.abs(event.clientX - press.x) > 10 || Math.abs(event.clientY - press.y) > 10) cancelPress();
+    });
+
+    ['pointerup', 'pointercancel', 'pointerleave'].forEach((type) => {
+        studentList.addEventListener(type, cancelPress);
+    });
+
+    // iOS shows a link preview / callout on long-press of an <a>.
+    studentList.addEventListener('contextmenu', (event) => {
+        if (event.target.closest('.student-card')) event.preventDefault();
+    });
+
+    studentList.addEventListener('click', (event) => {
+        const card = event.target.closest('.student-card');
+        if (!card) return;
+        if (suppressCardClick) {
+            suppressCardClick = false;
+            event.preventDefault();
+            return;
+        }
+        if (!selecting) return;
+        event.preventDefault();
+        toggleSelected(card.dataset.id);
+    });
+
+    bulkSelectAll.addEventListener('click', () => {
+        const all = store.students.list();
+        if (selected.size === all.length) selected.clear();
+        else all.forEach((s) => selected.add(s.id));
+        applySelection();
+    });
+
+    bulkDone.addEventListener('click', exitSelectMode);
+
+    bulkDelete.addEventListener('click', () => {
+        const ids = Array.from(selected).filter((id) => store.students.get(id));
+        if (ids.length === 0) return;
+        const sessionCount = ids.reduce((sum, id) => sum + store.sessions.summary(id).count, 0);
+        const who = ids.length === 1 ? store.students.get(ids[0]).name : plural(ids.length, 'student');
+        const detail = sessionCount === 0 ? '' : ' and their ' + plural(sessionCount, 'session');
+        if (!confirm('Delete ' + who + detail + '? This cannot be undone.')) return;
+        ids.forEach((id) => store.students.remove(id));
+        exitSelectMode();
+    });
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && selecting && !listView.hidden) exitSelectMode();
+    });
 
     function buildSessionRow(session) {
         const row = template.cloneNode(true);
@@ -132,6 +277,8 @@
     function route() {
         const match = location.hash.match(/^#student\/([\w-]+)$/);
         if (match) {
+            selecting = false;
+            selected.clear();
             listView.hidden = true;
             detailView.hidden = false;
             renderDetail(match[1]);
