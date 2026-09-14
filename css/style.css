@@ -99,6 +99,10 @@
 }
 
 body {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh;
   padding: calc(32px + env(safe-area-inset-top)) 20px 64px;
   max-width: 720px;
   margin: 0 auto;
@@ -501,6 +505,7 @@ button:disabled {
 #add-row {
   display: inline-flex;
   align-items: center;
+  align-self: flex-start;
   gap: 8px;
   border: none;
   margin-top: 6px;
@@ -522,8 +527,8 @@ button:disabled {
 }
 
 .app-footer {
-  margin-top: 32px;
-  padding-top: 16px;
+  margin-top: auto;
+  padding-top: 48px;
   text-align: center;
   gap: 16px;
   display: flex;
