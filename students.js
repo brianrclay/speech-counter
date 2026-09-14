@@ -40,11 +40,14 @@
         const key = store.nameKey(searchInput.value);
         const students = store.students.list()
             .filter((s) => !key || s.nameKey.includes(key))
-            .sort((a, b) => a.name.localeCompare(b.name));
+            .map((student) => {
+                const summary = store.sessions.summary(student.id);
+                return { student, summary, changedAt: summary.lastAt || student.updatedAt };
+            })
+            .sort((a, b) => (a.changedAt > b.changedAt ? -1 : a.changedAt < b.changedAt ? 1 : 0));
 
         studentList.textContent = '';
-        students.forEach((student) => {
-            const summary = store.sessions.summary(student.id);
+        students.forEach(({ student, summary }) => {
             const card = document.createElement('a');
             card.className = 'student-card';
             card.href = '#student/' + student.id;

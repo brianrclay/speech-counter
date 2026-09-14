@@ -300,36 +300,28 @@
         }
     });
 
-    // Searchable roster dropdown under whichever Name field is focused. One
-    // shared popover on <body>: .row clips overflow for its exit animation,
-    // so a list inside the row would be cut off.
+    // Roster suggestions for whichever Name field is focused, rendered as a
+    // chip strip inside that row rather than a floating popover: anything
+    // positioned against the viewport drifts when the on-screen keyboard
+    // scrolls the page, whereas in-flow content just moves with the row.
     const suggestions = (() => {
         const list = document.createElement('div');
         list.id = 'name-suggestions';
         list.className = 'name-suggestions';
         list.setAttribute('role', 'listbox');
-        list.hidden = true;
-        document.body.appendChild(list);
 
         let input = null;
         let items = [];
         let active = -1;
+        let closeTimer = null;
 
         function matches(query) {
             const key = store.nameKey(query);
             return store.students.list()
-                .map((student) => ({ student, lastAt: store.sessions.summary(student.id).lastAt || '' }))
+                .map((student) => ({ student, lastAt: store.sessions.summary(student.id).lastAt || student.updatedAt }))
                 .filter(({ student }) => !key || student.nameKey.includes(key))
                 .sort((a, b) => (a.lastAt > b.lastAt ? -1 : a.lastAt < b.lastAt ? 1 : a.student.name.localeCompare(b.student.name)))
                 .map(({ student }) => student);
-        }
-
-        function position() {
-            if (!input) return;
-            const rect = input.getBoundingClientRect();
-            list.style.left = rect.left + 'px';
-            list.style.top = rect.bottom + 4 + 'px';
-            list.style.minWidth = rect.width + 'px';
         }
 
         function setActive(index) {
@@ -339,14 +331,15 @@
                 el.setAttribute('aria-selected', i === active ? 'true' : 'false');
             });
             input.setAttribute('aria-activedescendant', active >= 0 ? list.children[active].id : '');
-            if (active >= 0) list.children[active].scrollIntoView({ block: 'nearest' });
+            if (active >= 0) list.children[active].scrollIntoView({ block: 'nearest', inline: 'nearest' });
         }
 
         function close() {
+            clearTimeout(closeTimer);
             if (!input) return;
             input.setAttribute('aria-expanded', 'false');
             input.removeAttribute('aria-activedescendant');
-            list.hidden = true;
+            list.remove();
             list.textContent = '';
             input = null;
             items = [];
@@ -355,27 +348,29 @@
 
         function update(target) {
             if (!store.entitlements.isPremium()) return;
+            clearTimeout(closeTimer);
             input = target;
             items = matches(input.value);
             if (items.length === 0) {
-                list.hidden = true;
+                list.remove();
                 list.textContent = '';
                 input.setAttribute('aria-expanded', 'false');
                 return;
             }
             list.textContent = '';
             items.forEach((student, i) => {
-                const option = document.createElement('div');
+                const option = document.createElement('button');
+                option.type = 'button';
+                option.tabIndex = -1;
                 option.className = 'name-suggestion';
                 option.id = 'name-suggestion-' + i;
                 option.setAttribute('role', 'option');
                 option.textContent = student.name;
                 list.appendChild(option);
             });
-            list.hidden = false;
+            input.closest('.name-fields').after(list);
             input.setAttribute('aria-expanded', 'true');
             setActive(-1);
-            position();
         }
 
         function choose(index) {
@@ -386,8 +381,11 @@
             commitName(row);
         }
 
-        list.addEventListener('pointerdown', (event) => {
-            event.preventDefault();
+        // Keep the input focused while a chip is tapped so the strip isn't
+        // torn down before the click lands; selection itself waits for the
+        // click so a swipe to scroll the strip doesn't pick a name.
+        list.addEventListener('pointerdown', (event) => event.preventDefault());
+        list.addEventListener('click', (event) => {
             const option = event.target.closest('.name-suggestion');
             if (option) choose(Array.from(list.children).indexOf(option));
         });
@@ -397,11 +395,13 @@
         });
 
         rowWrapper.addEventListener('focusout', (event) => {
-            if (event.target === input) close();
+            if (event.target !== input) return;
+            clearTimeout(closeTimer);
+            closeTimer = setTimeout(close, 150);
         });
 
         rowWrapper.addEventListener('keydown', (event) => {
-            if (event.target !== input || list.hidden) return;
+            if (event.target !== input || !list.isConnected) return;
             switch (event.key) {
                 case 'ArrowDown':
                     event.preventDefault();
@@ -423,11 +423,6 @@
                     break;
             }
         });
-
-        const viewport = window.visualViewport || window;
-        viewport.addEventListener('resize', position);
-        viewport.addEventListener('scroll', position);
-        window.addEventListener('scroll', position, true);
 
         return { update };
     })();

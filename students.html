@@ -3,14 +3,19 @@
 
 <head>
     <meta charset="UTF-8">
-    <!-- Google tag (gtag.js) -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-QPE28RCTSV"></script>
+    <!-- Google tag (gtag.js) - skipped on Netlify branch/preview deploys and
+         the local dev server so staging traffic stays out of production stats. -->
     <script>
-        window.dataLayer = window.dataLayer || [];
-        function gtag(){dataLayer.push(arguments);}
-        gtag('js', new Date());
-
-        gtag('config', 'G-QPE28RCTSV');
+        if (!location.hostname.endsWith('.netlify.app') && location.protocol !== 'http:') {
+            window.dataLayer = window.dataLayer || [];
+            window.gtag = function () { dataLayer.push(arguments); };
+            gtag('js', new Date());
+            gtag('config', 'G-QPE28RCTSV');
+            var gaScript = document.createElement('script');
+            gaScript.async = true;
+            gaScript.src = 'https://www.googletagmanager.com/gtag/js?id=G-QPE28RCTSV';
+            document.head.appendChild(gaScript);
+        }
     </script>
     <title>Students - Speech Count</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0, viewport-fit=cover">
