@@ -7,11 +7,10 @@
     const clearBtn = document.getElementById('clear');
     const addRowBtn = document.getElementById('add-row');
 
+    const store = window.SpeechStore;
+
     const MAX_HISTORY = 100;
     const history = [];
-
-    const STORAGE_KEY = 'speech-counter-state-v1';
-    let saveTimer = null;
 
     function reducedMotion() {
         return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -102,63 +101,98 @@
         row.querySelector('.percentValue').textContent = percent + '%';
     }
 
-    function cloneTemplateRow() {
+    function nameInput(row) {
+        return row.querySelector('.name-fields input:first-child');
+    }
+
+    function targetInput(row) {
+        return row.querySelector('.name-fields input:last-child');
+    }
+
+    function cloneTemplateRow(sessionId) {
         const row = template.cloneNode(true);
         row.classList.remove('template');
+        row.dataset.sessionId = sessionId || store.uuid();
+        const name = nameInput(row);
+        name.setAttribute('role', 'combobox');
+        name.setAttribute('aria-autocomplete', 'list');
+        name.setAttribute('aria-expanded', 'false');
+        name.setAttribute('aria-controls', 'name-suggestions');
+        name.autocomplete = 'off';
         return row;
     }
 
     function serializeRows() {
         return Array.from(rowWrapper.querySelectorAll('.row:not(.template)')).map((row) => {
-            const inputs = row.querySelectorAll('.name-fields input');
             const { correct, incorrect } = getRowCounts(row);
             return {
-                name: inputs[0] ? inputs[0].value : '',
-                target: inputs[1] ? inputs[1].value : '',
+                sessionId: row.dataset.sessionId,
+                name: nameInput(row).value,
+                target: targetInput(row).value,
                 correct,
                 incorrect,
             };
         });
     }
 
-    // Debounced so typing in a Name/Target field doesn't hit storage on
-    // every keystroke; button actions still feel instant since 150ms is
-    // well under human perception for a "did it save" concern.
     function saveState() {
-        clearTimeout(saveTimer);
-        saveTimer = setTimeout(() => {
-            try {
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(serializeRows()));
-            } catch (err) {
-                // Storage can be unavailable (private browsing, full, disabled) - not fatal.
-            }
-        }, 150);
+        store.board.save(serializeRows());
     }
 
     function buildRowFromData(data) {
-        const row = cloneTemplateRow();
-        const inputs = row.querySelectorAll('.name-fields input');
-        if (inputs[0]) inputs[0].value = data.name || '';
-        if (inputs[1]) inputs[1].value = data.target || '';
+        const row = cloneTemplateRow(data.sessionId);
+        nameInput(row).value = data.name || '';
+        targetInput(row).value = data.target || '';
         renderRow(row, data.correct || 0, data.incorrect || 0);
         return row;
     }
 
     function loadState() {
-        let saved;
-        try {
-            saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
-        } catch (err) {
-            saved = null;
-        }
-        // Only bail when nothing has ever been saved (null/invalid JSON) -
-        // an empty array is a legitimate saved state (the user deleted
-        // every row) and should be restored as empty, not backfilled with
-        // the default blank row from the markup.
-        if (!Array.isArray(saved)) return;
-
+        const saved = store.board.load();
         rowWrapper.querySelectorAll('.row:not(.template)').forEach((row) => row.remove());
+        // Only fall back to a blank row when nothing has ever been saved -
+        // an empty array is a legitimate saved state (the user deleted
+        // every row) and should be restored as empty.
+        if (!Array.isArray(saved)) {
+            rowWrapper.appendChild(cloneTemplateRow());
+            return;
+        }
         saved.forEach((data) => rowWrapper.appendChild(buildRowFromData(data)));
+    }
+
+    // A row is a session. It's recorded under a student only while it has a
+    // name and at least one trial; otherwise any earlier record is retired
+    // (undo back to 0/0, or the name being cleared).
+    function syncSession(row) {
+        if (!store.entitlements.isPremium()) return;
+        const id = row.dataset.sessionId;
+        const student = store.students.findByName(nameInput(row).value);
+        const { correct, incorrect } = getRowCounts(row);
+        if (!student || correct + incorrect === 0) {
+            store.sessions.remove(id);
+            return;
+        }
+        store.sessions.upsert({
+            id,
+            studentId: student.id,
+            target: targetInput(row).value,
+            correct,
+            incorrect,
+        });
+    }
+
+    // Students are created on commit (blur, Enter, picking a suggestion, or
+    // the first tap), never per keystroke - otherwise typing "Brian" would
+    // leave "B", "Br", "Bri"... in the roster.
+    function commitName(row) {
+        const input = nameInput(row);
+        const { correct, incorrect } = getRowCounts(row);
+        if (store.entitlements.isPremium() && correct + incorrect > 0) {
+            const student = store.students.findOrCreate(input.value);
+            if (student) input.value = student.name;
+        }
+        syncSession(row);
+        saveState();
     }
 
     function tick(row, kind, tickBtn) {
@@ -171,7 +205,7 @@
         pop(tickBtn);
         hapticTap();
         pushHistory({ type: 'tick', row, kind });
-        saveState();
+        commitName(row);
     }
 
     function deleteRow(row) {
@@ -207,6 +241,7 @@
                 } else {
                     renderRow(action.row, correct, incorrect - 1);
                 }
+                syncSession(action.row);
                 break;
             }
             case 'addRow': {
@@ -249,10 +284,153 @@
     });
 
     rowWrapper.addEventListener('input', (event) => {
+        if (!event.target.matches('.name-fields input')) return;
+        const row = event.target.closest('.row');
+        if (event.target === nameInput(row)) {
+            suggestions.update(event.target);
+        } else {
+            syncSession(row);
+        }
+        saveState();
+    });
+
+    rowWrapper.addEventListener('change', (event) => {
         if (event.target.matches('.name-fields input')) {
-            saveState();
+            commitName(event.target.closest('.row'));
         }
     });
+
+    // Searchable roster dropdown under whichever Name field is focused. One
+    // shared popover on <body>: .row clips overflow for its exit animation,
+    // so a list inside the row would be cut off.
+    const suggestions = (() => {
+        const list = document.createElement('div');
+        list.id = 'name-suggestions';
+        list.className = 'name-suggestions';
+        list.setAttribute('role', 'listbox');
+        list.hidden = true;
+        document.body.appendChild(list);
+
+        let input = null;
+        let items = [];
+        let active = -1;
+
+        function matches(query) {
+            const key = store.nameKey(query);
+            return store.students.list()
+                .map((student) => ({ student, lastAt: store.sessions.summary(student.id).lastAt || '' }))
+                .filter(({ student }) => !key || student.nameKey.includes(key))
+                .sort((a, b) => (a.lastAt > b.lastAt ? -1 : a.lastAt < b.lastAt ? 1 : a.student.name.localeCompare(b.student.name)))
+                .map(({ student }) => student);
+        }
+
+        function position() {
+            if (!input) return;
+            const rect = input.getBoundingClientRect();
+            list.style.left = rect.left + 'px';
+            list.style.top = rect.bottom + 4 + 'px';
+            list.style.minWidth = rect.width + 'px';
+        }
+
+        function setActive(index) {
+            active = index;
+            Array.from(list.children).forEach((el, i) => {
+                el.classList.toggle('active', i === active);
+                el.setAttribute('aria-selected', i === active ? 'true' : 'false');
+            });
+            input.setAttribute('aria-activedescendant', active >= 0 ? list.children[active].id : '');
+            if (active >= 0) list.children[active].scrollIntoView({ block: 'nearest' });
+        }
+
+        function close() {
+            if (!input) return;
+            input.setAttribute('aria-expanded', 'false');
+            input.removeAttribute('aria-activedescendant');
+            list.hidden = true;
+            list.textContent = '';
+            input = null;
+            items = [];
+            active = -1;
+        }
+
+        function update(target) {
+            if (!store.entitlements.isPremium()) return;
+            input = target;
+            items = matches(input.value);
+            if (items.length === 0) {
+                list.hidden = true;
+                list.textContent = '';
+                input.setAttribute('aria-expanded', 'false');
+                return;
+            }
+            list.textContent = '';
+            items.forEach((student, i) => {
+                const option = document.createElement('div');
+                option.className = 'name-suggestion';
+                option.id = 'name-suggestion-' + i;
+                option.setAttribute('role', 'option');
+                option.textContent = student.name;
+                list.appendChild(option);
+            });
+            list.hidden = false;
+            input.setAttribute('aria-expanded', 'true');
+            setActive(-1);
+            position();
+        }
+
+        function choose(index) {
+            if (!input || index < 0 || index >= items.length) return;
+            const row = input.closest('.row');
+            input.value = items[index].name;
+            close();
+            commitName(row);
+        }
+
+        list.addEventListener('pointerdown', (event) => {
+            event.preventDefault();
+            const option = event.target.closest('.name-suggestion');
+            if (option) choose(Array.from(list.children).indexOf(option));
+        });
+
+        rowWrapper.addEventListener('focusin', (event) => {
+            if (event.target.matches('.name-fields input:first-child')) update(event.target);
+        });
+
+        rowWrapper.addEventListener('focusout', (event) => {
+            if (event.target === input) close();
+        });
+
+        rowWrapper.addEventListener('keydown', (event) => {
+            if (event.target !== input || list.hidden) return;
+            switch (event.key) {
+                case 'ArrowDown':
+                    event.preventDefault();
+                    setActive((active + 1) % items.length);
+                    break;
+                case 'ArrowUp':
+                    event.preventDefault();
+                    setActive((active - 1 + items.length) % items.length);
+                    break;
+                case 'Enter':
+                    if (active >= 0) {
+                        event.preventDefault();
+                        choose(active);
+                    }
+                    break;
+                case 'Escape':
+                    event.preventDefault();
+                    close();
+                    break;
+            }
+        });
+
+        const viewport = window.visualViewport || window;
+        viewport.addEventListener('resize', position);
+        viewport.addEventListener('scroll', position);
+        window.addEventListener('scroll', position, true);
+
+        return { update };
+    })();
 
     addRowBtn.addEventListener('click', () => {
         const row = cloneTemplateRow();
@@ -283,7 +461,7 @@
 
     undoBtn.addEventListener('click', undo);
 
-    loadState();
+    store.ready().then(loadState);
 
     document.addEventListener('keydown', (event) => {
         if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'z') {
