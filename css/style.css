@@ -60,6 +60,7 @@
 
   --ticker-size: clamp(56px, 16vw, 84px);
   --row-gap: 14px;
+  --swipe-action-width: 104px;
 
   --ease: cubic-bezier(0.16, 1, 0.3, 1);
   --enter-duration: 320ms;
@@ -287,21 +288,64 @@ button:disabled {
 }
 
 .row {
-  display: grid;
-  grid-template-columns: 1fr var(--ticker-size) var(--ticker-size);
-  align-items: start;
-  gap: var(--row-gap);
+  position: relative;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
-  padding: 18px;
   margin-bottom: var(--row-gap);
   overflow: hidden;
 }
 
 .row.template {
   display: none;
+}
+
+.row-body {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 1fr var(--ticker-size) var(--ticker-size);
+  align-items: start;
+  gap: var(--row-gap);
+  padding: 18px;
+  background: var(--surface);
+  touch-action: pan-y;
+  transition: transform 260ms var(--ease);
+}
+
+.row-body.swiping {
+  transition: none;
+}
+
+/* Sits under .row-body on the right; revealed as the body slides left.
+   Width is driven inline while dragging so it fills whatever is exposed. */
+.row-swipe-action {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: var(--swipe-action-width);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  padding: 0 22px;
+  border: none;
+  background: var(--incorrect);
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.row-swipe-action .icon {
+  width: 18px;
+  height: 18px;
+}
+
+.row-swipe-action.will-remove {
+  justify-content: flex-start;
 }
 
 .row.row-enter {
@@ -340,6 +384,7 @@ button:disabled {
 
   .row.row-enter,
   .row.row-exit,
+  .row-body,
   .ticker.pop {
     animation: none !important;
     transition: none !important;
@@ -728,7 +773,7 @@ button:disabled {
   margin-top: 0;
 }
 
-.session-list .row {
+.session-list .row-body {
   align-items: center;
 }
 
