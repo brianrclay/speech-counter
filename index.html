@@ -58,6 +58,58 @@
 
     <div class="row-wrapper" id="row-wrapper">
         <div class="row">
+            <button type="button" class="row-swipe-action" tabindex="-1" aria-hidden="true">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="3 6 5 6 21 6" />
+                    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                    <path d="M10 11v6" />
+                    <path d="M14 11v6" />
+                    <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+                </svg>
+                <span>Remove</span>
+            </button>
+            <div class="row-body">
+                <div class="row-info">
+                    <div class="name-fields">
+                        <input type="text" placeholder="Name">
+                        <input type="text" placeholder="Target">
+                    </div>
+                    <span class="stats">
+                        <span class="total bold">Total: <span class="totalCount">0</span></span>
+                        <span class="percent bold">Correct: <span class="percentValue">0</span></span>
+                    </span>
+                    <button type="button" class="delete-row" aria-label="Remove row">
+                        <svg class="icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="3 6 5 6 21 6" />
+                            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                            <path d="M10 11v6" />
+                            <path d="M14 11v6" />
+                            <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+                        </svg>
+                        <span>Remove</span>
+                    </button>
+                </div>
+                <button type="button" class="ticker correct">0</button>
+                <button type="button" class="ticker incorrect">0</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="row template">
+        <button type="button" class="row-swipe-action" tabindex="-1" aria-hidden="true">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="3 6 5 6 21 6" />
+                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                <path d="M10 11v6" />
+                <path d="M14 11v6" />
+                <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+            </svg>
+            <span>Remove</span>
+        </button>
+        <div class="row-body">
             <div class="row-info">
                 <div class="name-fields">
                     <input type="text" placeholder="Name">
@@ -82,32 +134,6 @@
             <button type="button" class="ticker correct">0</button>
             <button type="button" class="ticker incorrect">0</button>
         </div>
-    </div>
-
-    <div class="row template">
-        <div class="row-info">
-            <div class="name-fields">
-                <input type="text" placeholder="Name">
-                <input type="text" placeholder="Target">
-            </div>
-            <span class="stats">
-                <span class="total bold">Total: <span class="totalCount">0</span></span>
-                <span class="percent bold">Correct: <span class="percentValue">0</span></span>
-            </span>
-            <button type="button" class="delete-row" aria-label="Remove row">
-                <svg class="icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="3 6 5 6 21 6" />
-                    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-                    <path d="M10 11v6" />
-                    <path d="M14 11v6" />
-                    <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
-                </svg>
-                <span>Remove</span>
-            </button>
-        </div>
-        <button type="button" class="ticker correct">0</button>
-        <button type="button" class="ticker incorrect">0</button>
     </div>
 
     <button type="button" id="add-row">
