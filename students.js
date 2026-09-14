@@ -167,13 +167,97 @@
         location.hash = '';
     });
 
-    sessionList.addEventListener('click', (event) => {
-        const deleteBtn = event.target.closest('.delete-row');
-        if (!deleteBtn) return;
-        const row = deleteBtn.closest('.row');
-        if (!confirm('Remove this session?')) return;
-        store.sessions.remove(row.dataset.sessionId);
+    // Inline editing swaps the target text and the two count chips for
+    // inputs in place, so the row keeps its shape while being edited.
+    function startEdit(row) {
+        const editing = sessionList.querySelector('.row.editing');
+        if (editing && editing !== row) renderDetail(currentId);
+        const session = store.sessions.get(row.dataset.sessionId);
+        if (!session || row.classList.contains('editing')) return;
+
+        row.classList.add('editing');
+        const editBtn = row.querySelector('.edit-session');
+        editBtn.querySelector('span').textContent = 'Save';
+        editBtn.setAttribute('aria-label', 'Save session');
+
+        const target = document.createElement('input');
+        target.type = 'text';
+        target.className = 'session-target-input';
+        target.placeholder = 'Target';
+        target.value = session.target;
+        row.querySelector('.session-target').replaceChildren(target);
+
+        [['correct', session.correct], ['incorrect', session.incorrect]].forEach(([kind, value]) => {
+            const input = document.createElement('input');
+            input.type = 'number';
+            input.inputMode = 'numeric';
+            input.min = '0';
+            input.step = '1';
+            input.className = 'session-count-input';
+            input.setAttribute('aria-label', kind === 'correct' ? 'Correct count' : 'Incorrect count');
+            input.value = value;
+            row.querySelector('.session-' + kind).replaceChildren(input);
+        });
+
+        target.focus();
+        target.select();
+    }
+
+    function saveEdit(row) {
+        const id = row.dataset.sessionId;
+        const count = (input) => Math.max(0, Math.floor(Number(input.value)) || 0);
+        const fields = {
+            target: row.querySelector('.session-target-input').value,
+            correct: count(row.querySelector('.session-correct input')),
+            incorrect: count(row.querySelector('.session-incorrect input')),
+        };
+        store.sessions.update(id, fields);
+
+        // If this session is still open on the board, keep the board's copy
+        // in step so the next tap doesn't overwrite the edit.
+        const board = store.board.load();
+        if (Array.isArray(board)) {
+            const boardRow = board.find((r) => r.sessionId === id);
+            if (boardRow) {
+                Object.assign(boardRow, fields);
+                store.board.save(board);
+            }
+        }
         renderDetail(currentId);
+    }
+
+    sessionList.addEventListener('click', (event) => {
+        const row = event.target.closest('.row');
+        if (!row) return;
+
+        if (event.target.closest('.edit-session')) {
+            if (row.classList.contains('editing')) saveEdit(row);
+            else startEdit(row);
+            return;
+        }
+
+        if (event.target.closest('.cancel-edit')) {
+            renderDetail(currentId);
+            return;
+        }
+
+        if (event.target.closest('.delete-row')) {
+            if (!confirm('Remove this session?')) return;
+            store.sessions.remove(row.dataset.sessionId);
+            renderDetail(currentId);
+        }
+    });
+
+    sessionList.addEventListener('keydown', (event) => {
+        const row = event.target.closest('.row.editing');
+        if (!row) return;
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            saveEdit(row);
+        } else if (event.key === 'Escape') {
+            event.preventDefault();
+            renderDetail(currentId);
+        }
     });
 
     async function exportBackup() {

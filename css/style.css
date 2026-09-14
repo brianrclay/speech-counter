@@ -821,6 +821,96 @@ button:disabled {
   background-color: var(--incorrect);
 }
 
+.session-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+}
+
+.edit-session,
+.cancel-edit {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  background: none;
+  padding: 6px 10px 6px 6px;
+  border-radius: var(--radius-pill);
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 600;
+  transition: background-color 160ms var(--ease), color 160ms var(--ease);
+}
+
+.edit-session:hover,
+.cancel-edit:hover {
+  color: var(--accent-hover);
+  background-color: var(--accent-soft);
+}
+
+.cancel-edit {
+  display: none;
+  padding-left: 10px;
+}
+
+.row.editing .cancel-edit {
+  display: inline-flex;
+}
+
+.row.editing .delete-row,
+.row.editing .session-percent {
+  display: none;
+}
+
+.row.editing .edit-session {
+  color: var(--accent);
+}
+
+.row.editing .session-target {
+  width: 100%;
+  margin-bottom: 6px;
+}
+
+.session-target-input {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background-color: var(--bg);
+  color: var(--text);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.session-count-input {
+  width: 100%;
+  height: 100%;
+  border: none;
+  border-radius: inherit;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: center;
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.session-count-input::-webkit-outer-spin-button,
+.session-count-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.session-target-input:focus,
+.session-count-input:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.session-count-input:focus {
+  box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.55);
+}
+
 .delete-student {
   display: block;
   margin: 24px auto 0;

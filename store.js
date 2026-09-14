@@ -210,6 +210,16 @@
             persist('sessions');
             return session;
         },
+        update(id, { target, correct, incorrect }) {
+            const session = sessions.get(id);
+            if (!session) return null;
+            session.target = cleanName(target);
+            session.correct = correct;
+            session.incorrect = incorrect;
+            session.updatedAt = now();
+            persist('sessions');
+            return session;
+        },
         remove(id) {
             const session = sessions.get(id);
             if (!session) return;
