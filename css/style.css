@@ -818,6 +818,7 @@ button:disabled {
 
 .list-toolbar .add-btn {
   flex-shrink: 0;
+  align-self: stretch;
   margin-top: 0;
   white-space: nowrap;
 }
