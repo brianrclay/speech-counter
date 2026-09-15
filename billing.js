@@ -11,7 +11,7 @@
     const RC_KEYS = {
         ios: 'appl_QGwnbqSLbClvYWDWwzUkWoArVfV',
         android: 'goog_REPLACE_ME',
-        web: 'rcb_REPLACE_ME',
+        web: 'rcb_RlkuVnpvDcfcpEuheXqslQYZMvwf',
         webSandbox: 'rcb_sb_dozJljYQoIxpihkQscyZdIkhh',
     };
     const WEB_SDK = 'https://cdn.jsdelivr.net/npm/@revenuecat/purchases-js@1.62.0/+esm';
