@@ -70,16 +70,16 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #23162e;
-    --surface: #2e1f3d;
-    --surface-hover: #3a2a4e;
-    --border: #453460;
+    --bg: #150d1c;
+    --surface: #1f1529;
+    --surface-hover: #2a1d38;
+    --border: #372a48;
     --text: #f1ecfa;
     --text-muted: #a99bc4;
 
     --accent: #f2a9da;
     --accent-hover: #f7c3e3;
-    --accent-soft: #3d2a52;
+    --accent-soft: #2e2040;
 
     --correct-soft: #103a2c;
     --incorrect-soft: #3d2019;
