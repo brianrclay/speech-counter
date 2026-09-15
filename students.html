@@ -39,7 +39,7 @@
         </a>
         <h1 class="app-title">Students</h1>
         <div class="app-actions">
-            <button type="button" id="export" class="btn btn-ghost" aria-label="Export backup">
+            <button type="button" id="export" class="btn btn-ghost" aria-label="Export as CSV">
                 <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                     stroke-linecap="round" stroke-linejoin="round">
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -48,7 +48,7 @@
                 </svg>
                 <span>Export</span>
             </button>
-            <label for="import-file" class="btn btn-ghost" aria-label="Import backup">
+            <label for="import-file" class="btn btn-ghost" aria-label="Import CSV or backup">
                 <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                     stroke-linecap="round" stroke-linejoin="round">
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -57,7 +57,7 @@
                 </svg>
                 <span>Import</span>
             </label>
-            <input type="file" id="import-file" accept="application/json,.json" hidden>
+            <input type="file" id="import-file" accept="text/csv,.csv,application/json,.json" hidden>
         </div>
     </header>
 

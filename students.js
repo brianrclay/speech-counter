@@ -483,15 +483,15 @@
     });
 
     async function exportBackup() {
-        const json = store.exportJSON();
-        const filename = 'speech-count-backup-' + new Date().toISOString().slice(0, 10) + '.json';
+        const csv = store.exportCSV();
+        const filename = 'speech-count-' + new Date().toISOString().slice(0, 10) + '.csv';
         const capacitor = window.Capacitor;
         const share = capacitor && capacitor.isNativePlatform && capacitor.isNativePlatform()
             && capacitor.Plugins && capacitor.Plugins.Share;
 
         if (share) {
             try {
-                await share.share({ title: filename, text: json });
+                await share.share({ title: filename, text: csv });
             } catch (err) {
                 // User dismissed the share sheet.
             }
@@ -499,7 +499,7 @@
         }
 
         const link = document.createElement('a');
-        link.href = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
+        link.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
         link.download = filename;
         document.body.appendChild(link);
         link.click();
@@ -514,7 +514,7 @@
         importFile.value = '';
         if (!file) return;
         try {
-            const changed = store.importJSON(await file.text());
+            const changed = store.importText(await file.text());
             alert(changed === 0 ? 'Nothing new to import.' : 'Imported ' + plural(changed, 'record') + '.');
             route();
         } catch (err) {
