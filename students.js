@@ -2,8 +2,28 @@
     'use strict';
 
     const store = window.SpeechStore;
+    const billing = window.SpeechBilling;
+    const account = window.SpeechAccount;
 
     const appHeader = document.querySelector('.app-header');
+    const appActions = document.querySelector('.app-actions');
+    const paywall = document.getElementById('paywall');
+    const paywallStatus = document.getElementById('paywall-status');
+    const paywallSignin = document.getElementById('paywall-signin');
+    const paywallSigninToggle = document.getElementById('paywall-signin-toggle');
+    const restoreBtn = document.getElementById('restore-purchases');
+    const planButtons = [...document.querySelectorAll('.plan[data-package]')];
+    const billingBanner = document.getElementById('billing-banner');
+    const billingBannerLink = document.getElementById('billing-banner-link');
+    const accountSignedOut = document.getElementById('account-signed-out');
+    const accountSignedIn = document.getElementById('account-signed-in');
+    const accountSigninBtn = document.getElementById('account-signin');
+    const accountSigninForm = document.getElementById('account-signin-form');
+    const accountEmail = document.getElementById('account-email');
+    const accountSyncStatus = document.getElementById('account-sync-status');
+    const manageSubscription = document.getElementById('manage-subscription');
+    const accountSignoutBtn = document.getElementById('account-signout');
+    const supportId = document.getElementById('support-id');
     const listView = document.getElementById('list-view');
     const detailView = document.getElementById('detail-view');
     const searchInput = document.getElementById('student-search');
@@ -306,7 +326,24 @@
         noSessions.hidden = sessions.length !== 0;
     }
 
+    let shownPremium = null;
+
     function showRoute(match) {
+        const premium = store.entitlements.isPremium();
+        shownPremium = premium;
+        paywall.hidden = premium;
+        appActions.hidden = !premium;
+        if (!premium) {
+            currentId = null;
+            detailView.hidden = true;
+            listView.hidden = true;
+            appHeader.hidden = false;
+            document.title = 'Roster - Speech Count';
+            renderPaywall();
+            window.scrollTo(0, 0);
+            return;
+        }
+        renderAccount();
         if (match) {
             selecting = false;
             selected.clear();
@@ -328,7 +365,7 @@
     let routed = false;
 
     function route() {
-        const match = location.hash.match(/^#student\/([\w-]+)$/);
+        const match = store.entitlements.isPremium() ? location.hash.match(/^#student\/([\w-]+)$/) : null;
         const animate = routed && document.startViewTransition
             && !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
         routed = true;
@@ -543,7 +580,187 @@
         }
     });
 
+    // Paywall
+
+    let paywallViewed = false;
+    let pricesLoaded = false;
+    let offerings = [];
+
+    function setPaywallStatus(text) {
+        paywallStatus.textContent = text || '';
+    }
+
+    function renderPaywall() {
+        if (!paywallViewed) {
+            paywallViewed = true;
+            billing.track('paywall_view', { platform: billing.platform() });
+        }
+        if (pricesLoaded) return;
+        pricesLoaded = true;
+        billing.offerings().then((packages) => {
+            offerings = packages;
+            packages.forEach((pkg) => {
+                const price = document.querySelector('[data-price="' + pkg.id + '"]');
+                if (price && pkg.price) {
+                    price.textContent = pkg.price;
+                    if (pkg.id === 'monthly') price.insertAdjacentHTML('beforeend', '<span class="plan-per">/month</span>');
+                }
+            });
+            restoreBtn.hidden = !billing.canRestore();
+        }).catch(() => {
+            // Prices stay at their defaults; buttons still try the store on tap.
+            pricesLoaded = false;
+        });
+    }
+
+    function afterEntitlementChange() {
+        if (store.entitlements.isPremium() !== shownPremium) route();
+    }
+
+    async function buy(packageId) {
+        const pkg = offerings.find((p) => p.id === packageId);
+        if (!pkg) {
+            setPaywallStatus("The store isn't available right now. Check your connection and try again.");
+            return;
+        }
+        if (billing.platform() === 'web' && !account.session()) {
+            openPaywallSignin('Sign in with your email so your purchase is saved to you.', () => buy(packageId));
+            return;
+        }
+        setPaywallStatus('');
+        planButtons.forEach((b) => { b.disabled = true; });
+        try {
+            const entitlement = await billing.purchase(pkg);
+            if (entitlement && entitlement.active) {
+                setPaywallStatus('Thanks! Your roster is ready.');
+                route();
+            } else if (entitlement) {
+                setPaywallStatus("The purchase went through but isn't active yet. Try Restore purchases in a moment.");
+            }
+        } catch (err) {
+            setPaywallStatus(err.message || 'The purchase could not be completed.');
+        } finally {
+            planButtons.forEach((b) => { b.disabled = false; });
+        }
+    }
+
+    function openPaywallSignin(title, onSignedIn) {
+        paywallSignin.hidden = false;
+        account.mountForm(paywallSignin, {
+            title,
+            onCancel: () => { paywallSignin.hidden = true; },
+            onSignedIn: async () => {
+                paywallSignin.hidden = true;
+                try {
+                    await billing.refresh();
+                } catch (err) {
+                    // Cached entitlement stands.
+                }
+                if (store.entitlements.isPremium()) {
+                    route();
+                } else if (onSignedIn) {
+                    onSignedIn();
+                } else {
+                    setPaywallStatus("Signed in, but there's no Roster purchase on this email yet.");
+                }
+            },
+        });
+    }
+
+    planButtons.forEach((button) => {
+        button.addEventListener('click', () => buy(button.dataset.package));
+    });
+
+    paywallSigninToggle.addEventListener('click', () => {
+        if (!paywallSignin.hidden) {
+            paywallSignin.hidden = true;
+            return;
+        }
+        openPaywallSignin('Enter the email you used when you bought Roster.');
+    });
+
+    restoreBtn.addEventListener('click', async () => {
+        setPaywallStatus('Checking with the store...');
+        try {
+            const entitlement = await billing.restore();
+            if (entitlement.active) {
+                route();
+            } else {
+                setPaywallStatus('No Roster purchase was found for this store account.');
+            }
+        } catch (err) {
+            setPaywallStatus(err.message || "Couldn't restore purchases right now.");
+        }
+    });
+
+    // Account row
+
+    const SYNC_LABELS = {
+        idle: 'Synced',
+        syncing: 'Syncing...',
+        error: "Couldn't sync - will retry",
+        'signed-out': 'Signed out',
+        off: 'Sync paused',
+    };
+
+    function renderAccount() {
+        const session = account.session();
+        const entitlement = store.entitlements.get() || {};
+        accountSignedOut.hidden = Boolean(session);
+        accountSignedIn.hidden = !session;
+        if (session) {
+            accountEmail.textContent = session.email;
+            accountSyncStatus.textContent = SYNC_LABELS[window.SpeechSync.status().status] || 'Synced';
+        } else {
+            accountSigninForm.hidden = true;
+        }
+        manageSubscription.hidden = !entitlement.managementURL;
+        if (entitlement.managementURL) manageSubscription.href = entitlement.managementURL;
+        supportId.textContent = entitlement.appUserId || (session && session.userId) || '-';
+
+        billingBanner.hidden = !entitlement.billingIssueAt;
+        if (entitlement.managementURL) billingBannerLink.href = entitlement.managementURL;
+    }
+
+    accountSigninBtn.addEventListener('click', () => {
+        accountSigninForm.hidden = false;
+        account.mountForm(accountSigninForm, {
+            onCancel: () => { accountSigninForm.hidden = true; },
+            onSignedIn: () => {
+                accountSigninForm.hidden = true;
+                billing.refresh().catch(() => {});
+                renderAccount();
+            },
+        });
+    });
+
+    accountSignoutBtn.addEventListener('click', async () => {
+        const session = account.session();
+        if (!session || !confirm('Sign out of ' + session.email + '? Your roster stays on this device.')) return;
+        const removeLocal = confirm('Also remove the roster from this device?\n\nChoose OK on a shared device. Your roster stays in your account.');
+        await account.signOut({ removeLocal });
+        renderAccount();
+        route();
+    });
+
+    window.addEventListener('speech:sync', () => {
+        if (!accountSignedIn.hidden) renderAccount();
+    });
+    window.addEventListener('speech:session', renderAccount);
+    window.addEventListener('speech:entitlement', () => {
+        renderAccount();
+        afterEntitlementChange();
+    });
+    window.addEventListener('speech:changed', () => {
+        if (!store.entitlements.isPremium()) return;
+        if (currentId) renderDetail(currentId);
+        else renderList();
+    });
+
     window.addEventListener('hashchange', route);
 
-    store.ready().then(route);
+    store.ready().then(() => {
+        route();
+        billing.refresh().catch(() => {});
+    });
 })();

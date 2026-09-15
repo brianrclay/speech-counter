@@ -479,7 +479,7 @@
 
     undoBtn.addEventListener('click', undo);
 
-    store.ready().then(loadState);
+    store.ready().then(loadState).then(() => window.SpeechBilling.refreshIfPremium());
 
     document.addEventListener('keydown', (event) => {
         if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'z') {

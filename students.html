@@ -67,7 +67,68 @@
         </div>
     </header>
 
+    <section id="paywall" class="paywall" hidden>
+        <div class="paywall-hero">
+            <h2 class="paywall-title">Keep every student's progress</h2>
+            <p class="paywall-lead">
+                Roster turns the board into a record. Type a name, tap Correct or Incorrect, and
+                the session is saved to that student automatically.
+            </p>
+        </div>
+        <ul class="paywall-features">
+            <li>
+                <strong>Sessions save themselves.</strong>
+                Every tally on the board lands in the student's history - no extra step.
+            </li>
+            <li>
+                <strong>Progress at a glance.</strong>
+                Percent correct over time for each student and each target.
+            </li>
+            <li>
+                <strong>Names fill in as you type.</strong>
+                Your roster shows up in the Name field on the board.
+            </li>
+            <li>
+                <strong>Sync across your devices.</strong>
+                Sign in with your email and your roster is on your phone, tablet, and laptop.
+            </li>
+            <li>
+                <strong>Export to a spreadsheet.</strong>
+                Download everything as CSV for reports and IEP meetings.
+            </li>
+        </ul>
+        <div class="plans" role="group" aria-label="Choose a plan">
+            <button type="button" class="plan plan-featured" data-package="lifetime">
+                <span class="plan-badge">Best value</span>
+                <span class="plan-name">Lifetime</span>
+                <span class="plan-price" data-price="lifetime">$19.99</span>
+                <span class="plan-note">One-time purchase. Includes every future feature.</span>
+            </button>
+            <button type="button" class="plan" data-package="monthly">
+                <span class="plan-name">Monthly</span>
+                <span class="plan-price" data-price="monthly">$2.99<span class="plan-per">/month</span></span>
+                <span class="plan-note">Cancel anytime.</span>
+            </button>
+        </div>
+        <p id="paywall-status" class="paywall-status" aria-live="polite"></p>
+        <div id="paywall-signin" class="paywall-signin" hidden></div>
+        <p class="paywall-links">
+            <button type="button" id="restore-purchases" class="link-btn" hidden>Restore purchases</button>
+            <button type="button" id="paywall-signin-toggle" class="link-btn">Already purchased? Sign in</button>
+        </p>
+        <p class="paywall-fine">
+            Monthly renews automatically until cancelled in your store account. Payment is charged
+            to your App Store, Google Play, or card at purchase. Lifetime is a one-time purchase for
+            as long as Speech Count is offered. <a href="./terms.html">Terms of Use</a> &middot;
+            <a href="./privacy.html">Privacy Policy</a>
+        </p>
+    </section>
+
     <section id="list-view">
+        <div id="billing-banner" class="billing-banner" hidden>
+            <span>There's a problem with your payment method.</span>
+            <a id="billing-banner-link" href="#" target="_blank" rel="noopener">Update</a>
+        </div>
         <div class="list-toolbar">
             <input type="search" id="student-search" class="student-search" placeholder="Search students" autocomplete="off">
             <button type="button" id="add-student" class="add-btn" aria-label="Add student">
@@ -97,6 +158,28 @@
             the student and their session are saved automatically.
         </p>
         <p id="no-matches" class="empty-state" hidden>No students match that search.</p>
+
+        <div id="account" class="account">
+            <div id="account-signed-out" class="account-row">
+                <div class="account-text">
+                    <strong>Sync across devices</strong>
+                    <span>Sign in with your email to use this roster on your other devices.</span>
+                </div>
+                <button type="button" id="account-signin" class="btn">Sign in</button>
+            </div>
+            <div id="account-signin-form" class="account-form" hidden></div>
+            <div id="account-signed-in" class="account-row" hidden>
+                <div class="account-text">
+                    <strong id="account-email"></strong>
+                    <span id="account-sync-status">Synced</span>
+                </div>
+                <div class="account-actions">
+                    <a id="manage-subscription" class="btn btn-ghost" href="#" target="_blank" rel="noopener" hidden>Manage</a>
+                    <button type="button" id="account-signout" class="btn btn-ghost">Sign out</button>
+                </div>
+            </div>
+            <p class="account-support">Support ID: <code id="support-id">-</code></p>
+        </div>
     </section>
 
     <section id="detail-view" hidden>
@@ -176,6 +259,9 @@
     </footer>
 
     <script src="./store.js"></script>
+    <script src="./billing.js"></script>
+    <script src="./account.js"></script>
+    <script src="./sync.js"></script>
     <script src="./swipe.js"></script>
     <script src="./students.js"></script>
 </body>
