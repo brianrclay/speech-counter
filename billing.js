@@ -6,10 +6,13 @@
 (() => {
     'use strict';
 
+    // Public keys - safe to ship. Web Billing has separate sandbox (Stripe
+    // test mode) and production keys; local and branch deploys use sandbox.
     const RC_KEYS = {
-        ios: 'appl_REPLACE_ME',
+        ios: 'appl_QGwnbqSLbClvYWDWwzUkWoArVfV',
         android: 'goog_REPLACE_ME',
         web: 'rcb_REPLACE_ME',
+        webSandbox: 'rcb_sb_dozJljYQoIxpihkQscyZdIkhh',
     };
     const WEB_SDK = 'https://cdn.jsdelivr.net/npm/@revenuecat/purchases-js@1.62.0/+esm';
     const ENTITLEMENT = 'roster';
@@ -120,12 +123,18 @@
         return id;
     }
 
+    function webKey() {
+        const host = location.hostname;
+        const staging = host === 'localhost' || host === '127.0.0.1' || host.endsWith('.netlify.app');
+        return staging ? RC_KEYS.webSandbox : RC_KEYS.web;
+    }
+
     async function webImpl() {
         const { Purchases } = await import(WEB_SDK);
         const session = store.session.get();
         const purchases = Purchases.isConfigured()
             ? Purchases.getSharedInstance()
-            : Purchases.configure(RC_KEYS.web, (session && session.userId) || anonymousId(Purchases));
+            : Purchases.configure(webKey(), (session && session.userId) || anonymousId(Purchases));
         return {
             customerInfo: () => purchases.getCustomerInfo(),
             async offerings() {
