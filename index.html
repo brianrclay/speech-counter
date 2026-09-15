@@ -3,14 +3,22 @@
 
 <head>
     <meta charset="UTF-8">
-    <!-- Google tag (gtag.js) -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-QPE28RCTSV"></script>
+    <!-- Google tag (gtag.js) - skipped on Netlify branch/preview deploys and
+         the local dev server so staging traffic stays out of production stats. -->
     <script>
-        window.dataLayer = window.dataLayer || [];
-        function gtag(){dataLayer.push(arguments);}
-        gtag('js', new Date());
-
-        gtag('config', 'G-QPE28RCTSV');
+        if (!location.hostname.endsWith('.netlify.app') && location.protocol !== 'http:') {
+            window.dataLayer = window.dataLayer || [];
+            window.gtag = function () { dataLayer.push(arguments); };
+            gtag('js', new Date());
+            gtag('config', 'G-QPE28RCTSV');
+            var gaScript = document.createElement('script');
+            gaScript.async = true;
+            gaScript.src = 'https://www.googletagmanager.com/gtag/js?id=G-QPE28RCTSV';
+            document.head.appendChild(gaScript);
+        }
+    </script>
+    <script>
+        if (/\/students\.html$/.test(document.referrer.split(/[?#]/)[0])) document.documentElement.dataset.nav = 'back';
     </script>
     <title>Speech Count</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0, viewport-fit=cover">
@@ -22,6 +30,9 @@
     <meta property="og:title" content="Speech Count" />
     <meta property="og:description" content="Count speech as it happens" />
     <link rel="icon" href="./assets/app-icon.png">
+    <!-- Inline so the opt-in is known before first render; in the external
+         stylesheet it races the page load and the transition gets skipped. -->
+    <style>@view-transition { navigation: auto; }</style>
     <link href="./css/reset.css" rel="stylesheet">
     <link href="./css/style.css" rel="stylesheet">
 </head>
@@ -49,6 +60,16 @@
                 </svg>
                 <span>Clear</span>
             </button>
+            <a href="./students.html" id="students-link" class="btn btn-ghost" aria-label="Students">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                    <circle cx="9" cy="7" r="4" />
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                </svg>
+                <span>Students</span>
+            </a>
         </div>
     </header>
 
@@ -58,46 +79,7 @@
         <span class="column-label">Incorrect</span>
     </div>
 
-    <div class="row-wrapper" id="row-wrapper">
-        <div class="row">
-            <button type="button" class="row-swipe-action" tabindex="-1" aria-hidden="true">
-                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                    stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="3 6 5 6 21 6" />
-                    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-                    <path d="M10 11v6" />
-                    <path d="M14 11v6" />
-                    <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
-                </svg>
-                <span>Remove</span>
-            </button>
-            <div class="row-body">
-                <div class="row-info">
-                    <div class="name-fields">
-                        <input type="text" placeholder="Name">
-                        <input type="text" placeholder="Target">
-                    </div>
-                    <span class="stats">
-                        <span class="total bold">Total: <span class="totalCount">0</span></span>
-                        <span class="percent bold">Correct: <span class="percentValue">0</span></span>
-                    </span>
-                    <button type="button" class="delete-row" aria-label="Remove row">
-                        <svg class="icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="3 6 5 6 21 6" />
-                            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-                            <path d="M10 11v6" />
-                            <path d="M14 11v6" />
-                            <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
-                        </svg>
-                        <span>Remove</span>
-                    </button>
-                </div>
-                <button type="button" class="ticker correct">0</button>
-                <button type="button" class="ticker incorrect">0</button>
-            </div>
-        </div>
-    </div>
+    <div class="row-wrapper" id="row-wrapper"></div>
 
     <div class="row template">
         <button type="button" class="row-swipe-action" tabindex="-1" aria-hidden="true">
@@ -138,7 +120,7 @@
         </div>
     </div>
 
-    <button type="button" id="add-row">
+    <button type="button" id="add-row" class="add-btn">
         <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
             stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="12" r="9" />
@@ -153,6 +135,8 @@
         <a href="./privacy.html">Privacy Policy</a>
     </footer>
 
+    <script src="./store.js"></script>
+    <script src="./swipe.js"></script>
     <script src="./main.js"></script>
 </body>
 

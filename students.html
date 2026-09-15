@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <!-- Google tag (gtag.js) - skipped on Netlify branch/preview deploys and
+         the local dev server so staging traffic stays out of production stats. -->
+    <script>
+        if (!location.hostname.endsWith('.netlify.app') && location.protocol !== 'http:') {
+            window.dataLayer = window.dataLayer || [];
+            window.gtag = function () { dataLayer.push(arguments); };
+            gtag('js', new Date());
+            gtag('config', 'G-QPE28RCTSV');
+            var gaScript = document.createElement('script');
+            gaScript.async = true;
+            gaScript.src = 'https://www.googletagmanager.com/gtag/js?id=G-QPE28RCTSV';
+            document.head.appendChild(gaScript);
+        }
+    </script>
+    <script>
+        if (/\/(index\.html)?$/.test(document.referrer.split(/[?#]/)[0])) document.documentElement.dataset.nav = 'forward';
+    </script>
+    <title>Students - Speech Count</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0, viewport-fit=cover">
+    <meta name="description" content="Saved results for each student">
+    <meta name="color-scheme" content="light dark">
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#faf9fc">
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#150d1c">
+    <link rel="icon" href="./assets/app-icon.png">
+    <!-- Inline so the opt-in is known before first render; in the external
+         stylesheet it races the page load and the transition gets skipped. -->
+    <style>@view-transition { navigation: auto; }</style>
+    <link href="./css/reset.css" rel="stylesheet">
+    <link href="./css/style.css" rel="stylesheet">
+</head>
+
+<body class="students-page">
+    <header class="app-header">
+        <a href="./index.html" class="btn btn-ghost back-btn" aria-label="Back to the board">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="15 18 9 12 15 6" />
+            </svg>
+            <span>Board</span>
+        </a>
+        <h1 class="app-title">Students</h1>
+        <div class="app-actions">
+            <button type="button" id="export" class="btn btn-ghost" aria-label="Export as CSV">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="7 10 12 15 17 10" />
+                    <line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+                <span>Export</span>
+            </button>
+            <label for="import-file" class="btn btn-ghost" aria-label="Import CSV or backup">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="17 8 12 3 7 8" />
+                    <line x1="12" y1="3" x2="12" y2="15" />
+                </svg>
+                <span>Import</span>
+            </label>
+            <input type="file" id="import-file" accept="text/csv,.csv,application/json,.json" hidden>
+        </div>
+    </header>
+
+    <section id="list-view">
+        <div class="list-toolbar">
+            <input type="search" id="student-search" class="student-search" placeholder="Search students" autocomplete="off">
+            <button type="button" id="add-student" class="add-btn" aria-label="Add student">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="9" />
+                    <line x1="12" y1="8" x2="12" y2="16" />
+                    <line x1="8" y1="12" x2="16" y2="12" />
+                </svg>
+                <span>Add</span>
+            </button>
+        </div>
+        <div id="bulk-toolbar" class="bulk-toolbar" hidden>
+            <button type="button" id="bulk-select-all" class="btn">Select all</button>
+            <span id="bulk-count" class="bulk-count" aria-live="polite">0 selected</span>
+            <button type="button" id="bulk-delete" class="btn bulk-delete" disabled>Delete</button>
+            <button type="button" id="bulk-done" class="btn btn-ghost">Done</button>
+        </div>
+        <form id="add-student-form" class="add-student-form" hidden>
+            <input type="text" id="new-student-name" placeholder="Student name" autocomplete="off" maxlength="80">
+            <button type="submit" class="add-btn">Add</button>
+            <button type="button" id="cancel-add-student" class="btn btn-ghost">Cancel</button>
+        </form>
+        <div id="student-list" class="student-list"></div>
+        <p id="empty-state" class="empty-state" hidden>
+            No students yet. Add one above, or type a name on the board and tap Correct or Incorrect -
+            the student and their session are saved automatically.
+        </p>
+        <p id="no-matches" class="empty-state" hidden>No students match that search.</p>
+    </section>
+
+    <section id="detail-view" hidden>
+        <a href="#" class="back-link">&larr; All students</a>
+        <div class="student-heading">
+            <h2 id="student-name" class="student-name"></h2>
+            <button type="button" id="rename" class="btn btn-ghost">Rename</button>
+        </div>
+        <div class="summary">
+            <div class="stat">
+                <span class="stat-value" id="stat-sessions">0</span>
+                <span class="stat-label">Sessions</span>
+            </div>
+            <div class="stat">
+                <span class="stat-value" id="stat-trials">0</span>
+                <span class="stat-label">Trials</span>
+            </div>
+            <div class="stat">
+                <span class="stat-value" id="stat-percent">0%</span>
+                <span class="stat-label">Correct</span>
+            </div>
+        </div>
+        <div id="session-list" class="session-list"></div>
+        <p id="no-sessions" class="empty-state" hidden>No sessions recorded for this student yet.</p>
+        <button type="button" id="delete-student" class="delete-student">Delete student</button>
+    </section>
+
+    <template id="student-swipe-action">
+        <button type="button" class="row-swipe-action" tabindex="-1" aria-hidden="true">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="3 6 5 6 21 6" />
+                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                <path d="M10 11v6" />
+                <path d="M14 11v6" />
+                <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+            </svg>
+            <span>Delete</span>
+        </button>
+    </template>
+
+    <div class="row template">
+        <div class="row-body">
+            <div class="row-info">
+                <span class="session-time"></span>
+                <span class="session-target"></span>
+                <div class="session-actions">
+                    <button type="button" class="edit-session" aria-label="Edit session">
+                        <svg class="icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
+                        </svg>
+                        <span>Edit</span>
+                    </button>
+                    <button type="button" class="cancel-edit">Cancel</button>
+                    <button type="button" class="delete-row" aria-label="Remove session">
+                        <svg class="icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="3 6 5 6 21 6" />
+                            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                            <path d="M10 11v6" />
+                            <path d="M14 11v6" />
+                            <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+                        </svg>
+                        <span>Remove</span>
+                    </button>
+                </div>
+            </div>
+            <span class="session-count session-correct"></span>
+            <span class="session-count session-incorrect"></span>
+        </div>
+    </div>
+
+    <footer class="app-footer">
+        <a href="./support.html">Support</a>
+        <a href="./privacy.html">Privacy Policy</a>
+    </footer>
+
+    <script src="./store.js"></script>
+    <script src="./swipe.js"></script>
+    <script src="./students.js"></script>
+</body>
+
+</html>
