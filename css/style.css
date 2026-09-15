@@ -1080,14 +1080,10 @@ button:disabled {
   background-color: var(--incorrect-soft);
 }
 
-/* Page transitions: board <-> roster is a cross-document navigation, roster
-   <-> student detail is a hash route. Both use the View Transitions API; the
-   html[data-nav] hook picks a slide direction, otherwise the new view just
-   rises in. */
-@view-transition {
-  navigation: auto;
-}
-
+/* Page transitions: board <-> roster is a cross-document navigation (opted in
+   via an inline @view-transition rule in each page's head), roster <-> student
+   detail is a hash route. Both use the View Transitions API; the html[data-nav]
+   hook picks a slide direction, otherwise the new view just rises in. */
 @keyframes view-out {
   to {
     opacity: 0;

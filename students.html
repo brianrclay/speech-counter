@@ -27,6 +27,9 @@
     <meta name="theme-color" media="(prefers-color-scheme: light)" content="#faf9fc">
     <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#150d1c">
     <link rel="icon" href="./assets/app-icon.png">
+    <!-- Inline so the opt-in is known before first render; in the external
+         stylesheet it races the page load and the transition gets skipped. -->
+    <style>@view-transition { navigation: auto; }</style>
     <link href="./css/reset.css" rel="stylesheet">
     <link href="./css/style.css" rel="stylesheet">
 </head>
