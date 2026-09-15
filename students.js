@@ -305,8 +305,7 @@
         noSessions.hidden = sessions.length !== 0;
     }
 
-    function route() {
-        const match = location.hash.match(/^#student\/([\w-]+)$/);
+    function showRoute(match) {
         if (match) {
             selecting = false;
             selected.clear();
@@ -321,6 +320,25 @@
             renderList();
         }
         window.scrollTo(0, 0);
+    }
+
+    let routed = false;
+
+    function route() {
+        const match = location.hash.match(/^#student\/([\w-]+)$/);
+        const animate = routed && document.startViewTransition
+            && !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        routed = true;
+        if (!animate) {
+            showRoute(match);
+            return;
+        }
+        document.documentElement.dataset.nav = match ? 'forward' : 'back';
+        const transition = document.startViewTransition(() => showRoute(match));
+        transition.ready.catch(() => {});
+        transition.finished
+            .catch(() => {})
+            .then(() => { delete document.documentElement.dataset.nav; });
     }
 
     searchInput.addEventListener('input', renderList);

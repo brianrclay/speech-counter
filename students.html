@@ -17,6 +17,9 @@
             document.head.appendChild(gaScript);
         }
     </script>
+    <script>
+        if (/\/(index\.html)?$/.test(document.referrer.split(/[?#]/)[0])) document.documentElement.dataset.nav = 'forward';
+    </script>
     <title>Students - Speech Count</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0, viewport-fit=cover">
     <meta name="description" content="Saved results for each student">

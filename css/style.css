@@ -1079,3 +1079,93 @@ button:disabled {
 .delete-student:hover {
   background-color: var(--incorrect-soft);
 }
+
+/* Page transitions: board <-> roster is a cross-document navigation, roster
+   <-> student detail is a hash route. Both use the View Transitions API; the
+   html[data-nav] hook picks a slide direction, otherwise the new view just
+   rises in. */
+@view-transition {
+  navigation: auto;
+}
+
+@keyframes view-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes view-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+
+@keyframes view-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(28px);
+  }
+}
+
+@keyframes view-in-left {
+  from {
+    opacity: 0;
+    transform: translateX(-28px);
+  }
+}
+
+@keyframes view-out-left {
+  to {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+}
+
+@keyframes view-out-right {
+  to {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+}
+
+::view-transition-old(root) {
+  animation: view-out 140ms var(--ease) both;
+}
+
+::view-transition-new(root) {
+  animation: view-in-up 220ms var(--ease) both;
+}
+
+html[data-nav="forward"]::view-transition-old(root) {
+  animation-name: view-out-left;
+}
+
+html[data-nav="forward"]::view-transition-new(root) {
+  animation-name: view-in-right;
+}
+
+html[data-nav="back"]::view-transition-old(root) {
+  animation-name: view-out-right;
+}
+
+html[data-nav="back"]::view-transition-new(root) {
+  animation-name: view-in-left;
+}
+
+@supports not (view-transition-name: none) {
+  #list-view,
+  #detail-view {
+    animation: view-in-up 220ms var(--ease) both;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*),
+  #list-view,
+  #detail-view {
+    animation: none !important;
+  }
+}
