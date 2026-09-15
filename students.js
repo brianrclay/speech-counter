@@ -3,6 +3,7 @@
 
     const store = window.SpeechStore;
 
+    const appHeader = document.querySelector('.app-header');
     const listView = document.getElementById('list-view');
     const detailView = document.getElementById('detail-view');
     const searchInput = document.getElementById('student-search');
@@ -309,12 +310,14 @@
         if (match) {
             selecting = false;
             selected.clear();
+            appHeader.hidden = true;
             listView.hidden = true;
             detailView.hidden = false;
             renderDetail(match[1]);
         } else {
             currentId = null;
             detailView.hidden = true;
+            appHeader.hidden = false;
             listView.hidden = false;
             document.title = 'Students - Speech Count';
             renderList();
