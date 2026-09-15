@@ -13,12 +13,16 @@
         board: 'speech-counter-state-v1',
         students: 'speech-counter:students:v1',
         sessions: 'speech-counter:sessions:v1',
+        entitlement: 'speech-counter:entitlement:v1',
+        session: 'speech-counter:session:v1',
+        sync: 'speech-counter:sync:v1',
     };
 
     const SAVE_DELAY = 150;
 
-    const cache = { board: null, students: [], sessions: [] };
+    const cache = { board: null, students: [], sessions: [], entitlement: null, session: null, sync: null };
     const saveTimers = {};
+    const persistListeners = [];
     let readyPromise = null;
 
     function nativePreferences() {
@@ -83,6 +87,11 @@
         saveTimers[name] = setTimeout(() => {
             write(KEYS[name], JSON.stringify(cache[name]));
         }, SAVE_DELAY);
+        persistListeners.forEach((cb) => cb(name));
+    }
+
+    function onPersist(cb) {
+        persistListeners.push(cb);
     }
 
     function flush() {
@@ -96,11 +105,17 @@
 
     function ready() {
         if (readyPromise) return readyPromise;
-        readyPromise = Promise.all([read(KEYS.board), read(KEYS.students), read(KEYS.sessions)])
-            .then(([board, students, sessions]) => {
+        readyPromise = Promise.all([
+            read(KEYS.board), read(KEYS.students), read(KEYS.sessions),
+            read(KEYS.entitlement), read(KEYS.session), read(KEYS.sync),
+        ])
+            .then(([board, students, sessions, entitlement, session, sync]) => {
                 cache.board = parse(board, null);
                 cache.students = parse(students, []);
                 cache.sessions = parse(sessions, []);
+                cache.entitlement = parse(entitlement, null);
+                cache.session = parse(session, null);
+                cache.sync = parse(sync, null);
                 if (!Array.isArray(cache.students)) cache.students = [];
                 if (!Array.isArray(cache.sessions)) cache.sessions = [];
 
@@ -258,11 +273,77 @@
         },
     };
 
+    // Last known answer from the billing provider, kept on-device so the
+    // roster keeps working offline. billing.js refreshes it at boot and after
+    // every purchase, restore, and sign-in.
     const entitlements = {
         isPremium() {
-            return true;
+            const e = cache.entitlement;
+            if (!e || !e.active) return false;
+            return !e.expiresAt || e.expiresAt > now();
+        },
+        get() {
+            return cache.entitlement;
+        },
+        set(value) {
+            cache.entitlement = value ? Object.assign({ checkedAt: now() }, value) : null;
+            persist('entitlement');
+            window.dispatchEvent(new CustomEvent('speech:entitlement'));
         },
     };
+
+    const session = {
+        get() {
+            return cache.session;
+        },
+        set(value) {
+            cache.session = value || null;
+            persist('session');
+            window.dispatchEvent(new CustomEvent('speech:session'));
+        },
+        clear() {
+            session.set(null);
+        },
+    };
+
+    const syncState = {
+        get() {
+            return cache.sync;
+        },
+        set(value) {
+            cache.sync = value || null;
+            persist('sync');
+        },
+    };
+
+    function changedSince(since) {
+        const after = (r) => !since || (r.updatedAt || '') > since;
+        return {
+            students: cache.students.filter(after),
+            sessions: cache.sessions.filter(after),
+        };
+    }
+
+    // Records arriving from another device via sync. Same last-write-wins
+    // merge as a backup import, then anything on screen re-renders.
+    function applyRemote({ students: incomingStudents, sessions: incomingSessions }) {
+        const changed = mergeRecords(cache.students, incomingStudents || [])
+            + mergeRecords(cache.sessions, incomingSessions || []);
+        if (changed > 0) {
+            persist('students');
+            persist('sessions');
+            window.dispatchEvent(new CustomEvent('speech:changed'));
+        }
+        return changed;
+    }
+
+    function clearRoster() {
+        cache.students = [];
+        cache.sessions = [];
+        persist('students');
+        persist('sessions');
+        window.dispatchEvent(new CustomEvent('speech:changed'));
+    }
 
     function exportJSON() {
         return JSON.stringify({
@@ -463,6 +544,13 @@
         sessions,
         board,
         entitlements,
+        session,
+        syncState,
+        onPersist,
+        changedSince,
+        applyRemote,
+        clearRoster,
+        mergeRecords,
         exportJSON,
         exportCSV,
         importJSON,

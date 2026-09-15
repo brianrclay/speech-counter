@@ -1,8 +1,13 @@
 [build.environment]
   NODE_VERSION = "22"
 
+[functions]
+  directory = "netlify/functions"
+
 # Branch deploys and PR deploy previews are gated behind Basic auth; see
-# netlify/edge-functions/staging-auth.js. Production is unaffected.
+# netlify/edge-functions/staging-auth.js. Production is unaffected. The API
+# is excluded so native test builds can talk to a branch deploy.
 [[edge_functions]]
   path = "/*"
+  excludedPath = "/api/*"
   function = "staging-auth"
