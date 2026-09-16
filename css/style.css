@@ -1458,20 +1458,23 @@ html[data-nav="back"]::view-transition-new(root) {
   }
 }
 
-/* RevenueCat's Web Billing checkout (#rcb-ui-pw-root) is injected directly
-   into this page's DOM with no Shadow DOM isolation, so it inherits our
-   `body { color: var(--text) }`. In dark mode --text is a near-white color,
-   which is invisible against RC's white checkout/confirmation panels. Reset
-   inheritance so RC's own internal styles (which do set explicit colors on
-   inputs, buttons, etc.) are the only thing controlling its appearance. */
+/* RevenueCat's Web Billing checkout mounts directly into this page's DOM
+   with no Shadow DOM isolation (as .rcb-ui-root; #rcb-ui-pw-root also
+   appears in some embed modes), so any of its text that doesn't set its
+   own color inherits our `body { color: var(--text) }`. In dark mode
+   --text is near-white, which was invisible against RC's white checkout
+   panel (RC renders most of its text as plain, unstyled <span> elements
+   via a shared "rcb-typography" class, not semantic tags, so a targeted
+   tag-selector reset like div/p/h1 missed them). Force checkout text back
+   to black and light color-scheme regardless of our page's theme.
+   !important guards against specificity/load-order ties with RC's own
+   dynamically-injected component styles, which can change between SDK
+   versions. Verified against the live checkout DOM, not just a synthetic
+   mock. */
+.rcb-ui-root,
+.rcb-ui-root *,
 #rcb-ui-pw-root,
-#rcb-ui-pw-root div,
-#rcb-ui-pw-root p,
-#rcb-ui-pw-root a,
-#rcb-ui-pw-root input,
-#rcb-ui-pw-root label,
-#rcb-ui-pw-root button,
-#rcb-ui-pw-root h1 {
-  color: initial;
+#rcb-ui-pw-root * {
+  color: #000 !important;
   color-scheme: light;
 }
