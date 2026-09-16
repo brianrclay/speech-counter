@@ -1457,3 +1457,21 @@ html[data-nav="back"]::view-transition-new(root) {
     animation: none !important;
   }
 }
+
+/* RevenueCat's Web Billing checkout (#rcb-ui-pw-root) is injected directly
+   into this page's DOM with no Shadow DOM isolation, so it inherits our
+   `body { color: var(--text) }`. In dark mode --text is a near-white color,
+   which is invisible against RC's white checkout/confirmation panels. Reset
+   inheritance so RC's own internal styles (which do set explicit colors on
+   inputs, buttons, etc.) are the only thing controlling its appearance. */
+#rcb-ui-pw-root,
+#rcb-ui-pw-root div,
+#rcb-ui-pw-root p,
+#rcb-ui-pw-root a,
+#rcb-ui-pw-root input,
+#rcb-ui-pw-root label,
+#rcb-ui-pw-root button,
+#rcb-ui-pw-root h1 {
+  color: initial;
+  color-scheme: light;
+}
