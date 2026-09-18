@@ -9,21 +9,17 @@
     const appActions = document.querySelector('.app-actions');
     const paywall = document.getElementById('paywall');
     const paywallStatus = document.getElementById('paywall-status');
-    const paywallSignin = document.getElementById('paywall-signin');
     const paywallSigninToggle = document.getElementById('paywall-signin-toggle');
     const restoreBtn = document.getElementById('restore-purchases');
     const planButtons = [...document.querySelectorAll('.plan[data-package]')];
+    const buyBtn = document.getElementById('buy');
+    const buyLabel = document.getElementById('buy-label');
+    const buyPrice = document.getElementById('buy-price');
+    const purchaseDone = document.getElementById('purchase-done');
+    const purchaseFinish = document.getElementById('purchase-finish');
+    const tabBar = document.querySelector('.tab-bar');
     const billingBanner = document.getElementById('billing-banner');
     const billingBannerLink = document.getElementById('billing-banner-link');
-    const accountSignedOut = document.getElementById('account-signed-out');
-    const accountSignedIn = document.getElementById('account-signed-in');
-    const accountSigninBtn = document.getElementById('account-signin');
-    const accountSigninForm = document.getElementById('account-signin-form');
-    const accountEmail = document.getElementById('account-email');
-    const accountSyncStatus = document.getElementById('account-sync-status');
-    const manageSubscription = document.getElementById('manage-subscription');
-    const accountSignoutBtn = document.getElementById('account-signout');
-    const supportId = document.getElementById('support-id');
     const listView = document.getElementById('list-view');
     const detailView = document.getElementById('detail-view');
     const searchInput = document.getElementById('student-search');
@@ -105,7 +101,7 @@
             meta.className = 'student-card-meta';
             meta.textContent = summary.count === 0
                 ? 'No sessions yet'
-                : plural(summary.count, 'session') + ' · Last ' + shortDayFormat.format(new Date(summary.lastAt));
+                : plural(summary.count, 'session') + ' \u2022 Last ' + shortDayFormat.format(new Date(summary.lastAt));
 
             const percent = document.createElement('span');
             percent.className = 'student-card-percent';
@@ -327,23 +323,36 @@
     }
 
     let shownPremium = null;
+    let celebrating = false;
 
     function showRoute(match) {
         const premium = store.entitlements.isPremium();
         shownPremium = premium;
-        paywall.hidden = premium;
+        purchaseDone.hidden = !celebrating;
+        tabBar.hidden = celebrating;
+        document.body.classList.toggle('celebrating', celebrating);
+        appHeader.hidden = celebrating;
+        paywall.hidden = premium || celebrating;
         appActions.hidden = !premium;
+        if (celebrating) {
+            currentId = null;
+            detailView.hidden = true;
+            listView.hidden = true;
+            document.title = 'Purchase completed - Speech Count';
+            window.scrollTo(0, 0);
+            return;
+        }
         if (!premium) {
             currentId = null;
             detailView.hidden = true;
             listView.hidden = true;
             appHeader.hidden = false;
-            document.title = 'Roster - Speech Count';
+            document.title = 'Students - Speech Count';
             renderPaywall();
             window.scrollTo(0, 0);
             return;
         }
-        renderAccount();
+        renderBillingBanner();
         if (match) {
             selecting = false;
             selected.clear();
@@ -585,9 +594,26 @@
     let paywallViewed = false;
     let pricesLoaded = false;
     let offerings = [];
+    let selectedPackage = 'lifetime';
+
+    const BUY_LABELS = { lifetime: 'Purchase lifetime', monthly: 'Subscribe monthly' };
 
     function setPaywallStatus(text) {
         paywallStatus.textContent = text || '';
+    }
+
+    function priceFor(packageId) {
+        const price = document.querySelector('[data-price="' + packageId + '"]');
+        return price ? price.textContent : '';
+    }
+
+    function selectPlan(packageId) {
+        selectedPackage = packageId;
+        planButtons.forEach((button) => {
+            button.setAttribute('aria-checked', button.dataset.package === packageId ? 'true' : 'false');
+        });
+        buyLabel.textContent = BUY_LABELS[packageId] || 'Purchase';
+        buyPrice.textContent = priceFor(packageId);
     }
 
     function renderPaywall() {
@@ -595,17 +621,16 @@
             paywallViewed = true;
             billing.track('paywall_view', { platform: billing.platform() });
         }
+        selectPlan(selectedPackage);
         if (pricesLoaded) return;
         pricesLoaded = true;
         billing.offerings().then((packages) => {
             offerings = packages;
             packages.forEach((pkg) => {
                 const price = document.querySelector('[data-price="' + pkg.id + '"]');
-                if (price && pkg.price) {
-                    price.textContent = pkg.price;
-                    if (pkg.id === 'monthly') price.insertAdjacentHTML('beforeend', '<span class="plan-per">/month</span>');
-                }
+                if (price && pkg.price) price.textContent = pkg.price + (pkg.id === 'monthly' ? '/mo' : '');
             });
+            selectPlan(selectedPackage);
             restoreBtn.hidden = !billing.canRestore();
         }).catch(() => {
             // Prices stay at their defaults; buttons still try the store on tap.
@@ -624,15 +649,17 @@
             return;
         }
         if (billing.platform() === 'web' && !account.session()) {
-            openPaywallSignin('Sign in with your email so your purchase is saved to you.', () => buy(packageId));
+            const plan = planButtons.find((b) => b.dataset.package === packageId);
+            window.SpeechSheet.open({ plan: plan.querySelector('.plan-body'), onSignedIn: () => buy(packageId) });
             return;
         }
         setPaywallStatus('');
+        buyBtn.disabled = true;
         planButtons.forEach((b) => { b.disabled = true; });
         try {
             const entitlement = await billing.purchase(pkg);
             if (entitlement && entitlement.active) {
-                setPaywallStatus('Thanks! Your roster is ready.');
+                celebrating = true;
                 route();
             } else if (entitlement) {
                 setPaywallStatus("The purchase went through but isn't active yet. Try Restore purchases in a moment.");
@@ -640,43 +667,35 @@
         } catch (err) {
             setPaywallStatus(err.message || 'The purchase could not be completed.');
         } finally {
+            buyBtn.disabled = false;
             planButtons.forEach((b) => { b.disabled = false; });
         }
     }
 
-    function openPaywallSignin(title, onSignedIn) {
-        paywallSignin.hidden = false;
-        account.mountForm(paywallSignin, {
-            title,
-            onCancel: () => { paywallSignin.hidden = true; },
+    planButtons.forEach((button) => {
+        button.addEventListener('click', () => selectPlan(button.dataset.package));
+    });
+
+    buyBtn.addEventListener('click', () => buy(selectedPackage));
+
+    purchaseFinish.addEventListener('click', () => {
+        celebrating = false;
+        route();
+    });
+
+    paywallSigninToggle.addEventListener('click', () => {
+        window.SpeechSheet.open({
+            title: 'Sign in',
             onSignedIn: async () => {
-                paywallSignin.hidden = true;
                 try {
                     await billing.refresh();
                 } catch (err) {
                     // Cached entitlement stands.
                 }
-                if (store.entitlements.isPremium()) {
-                    route();
-                } else if (onSignedIn) {
-                    onSignedIn();
-                } else {
-                    setPaywallStatus("Signed in, but there's no Roster purchase on this email yet.");
-                }
+                if (store.entitlements.isPremium()) route();
+                else setPaywallStatus("Signed in, but there's no Speech Count Pro purchase on this email yet.");
             },
         });
-    }
-
-    planButtons.forEach((button) => {
-        button.addEventListener('click', () => buy(button.dataset.package));
-    });
-
-    paywallSigninToggle.addEventListener('click', () => {
-        if (!paywallSignin.hidden) {
-            paywallSignin.hidden = true;
-            return;
-        }
-        openPaywallSignin('Enter the email you used when you bought Roster.');
     });
 
     restoreBtn.addEventListener('click', async () => {
@@ -686,69 +705,21 @@
             if (entitlement.active) {
                 route();
             } else {
-                setPaywallStatus('No Roster purchase was found for this store account.');
+                setPaywallStatus('No Speech Count Pro purchase was found for this store account.');
             }
         } catch (err) {
             setPaywallStatus(err.message || "Couldn't restore purchases right now.");
         }
     });
 
-    // Account row
-
-    const SYNC_LABELS = {
-        idle: 'Synced',
-        syncing: 'Syncing...',
-        error: "Couldn't sync - will retry",
-        'signed-out': 'Signed out',
-        off: 'Sync paused',
-    };
-
-    function renderAccount() {
-        const session = account.session();
+    function renderBillingBanner() {
         const entitlement = store.entitlements.get() || {};
-        accountSignedOut.hidden = Boolean(session);
-        accountSignedIn.hidden = !session;
-        if (session) {
-            accountEmail.textContent = session.email;
-            accountSyncStatus.textContent = SYNC_LABELS[window.SpeechSync.status().status] || 'Synced';
-        } else {
-            accountSigninForm.hidden = true;
-        }
-        manageSubscription.hidden = !entitlement.managementURL;
-        if (entitlement.managementURL) manageSubscription.href = entitlement.managementURL;
-        supportId.textContent = entitlement.appUserId || (session && session.userId) || '-';
-
         billingBanner.hidden = !entitlement.billingIssueAt;
         if (entitlement.managementURL) billingBannerLink.href = entitlement.managementURL;
     }
 
-    accountSigninBtn.addEventListener('click', () => {
-        accountSigninForm.hidden = false;
-        account.mountForm(accountSigninForm, {
-            onCancel: () => { accountSigninForm.hidden = true; },
-            onSignedIn: () => {
-                accountSigninForm.hidden = true;
-                billing.refresh().catch(() => {});
-                renderAccount();
-            },
-        });
-    });
-
-    accountSignoutBtn.addEventListener('click', async () => {
-        const session = account.session();
-        if (!session || !confirm('Sign out of ' + session.email + '? Your roster stays on this device.')) return;
-        const removeLocal = confirm('Also remove the roster from this device?\n\nChoose OK on a shared device. Your roster stays in your account.');
-        await account.signOut({ removeLocal });
-        renderAccount();
-        route();
-    });
-
-    window.addEventListener('speech:sync', () => {
-        if (!accountSignedIn.hidden) renderAccount();
-    });
-    window.addEventListener('speech:session', renderAccount);
     window.addEventListener('speech:entitlement', () => {
-        renderAccount();
+        renderBillingBanner();
         afterEntitlementChange();
     });
     window.addEventListener('speech:changed', () => {

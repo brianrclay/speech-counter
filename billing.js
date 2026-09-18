@@ -47,6 +47,7 @@
             active: Boolean(active && active.isActive !== false),
             productId: active ? active.productIdentifier || null : null,
             expiresAt: active ? iso(active.expirationDate) : null,
+            willRenew: Boolean(active && active.willRenew),
             billingIssueAt: active ? iso(active.billingIssueDetectedAt) : null,
             managementURL: (info && info.managementURL) || null,
             appUserId: (info && info.originalAppUserId) || null,
@@ -71,7 +72,7 @@
         return packages.map((pkg) => {
             const product = pkg.product || pkg.webBillingProduct || pkg.rcBillingProduct || {};
             const price = product.priceString || (product.currentPrice && product.currentPrice.formattedPrice) || '';
-            return { id: PACKAGE_IDS[pkg.packageType] || pkg.identifier, price, raw: pkg };
+            return { id: PACKAGE_IDS[pkg.packageType] || pkg.identifier, price, productId: product.identifier || null, raw: pkg };
         });
     }
 

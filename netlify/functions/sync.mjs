@@ -20,7 +20,7 @@ async function assertPremium(userId) {
     const data = await response.json();
     const entitlement = data.subscriber && data.subscriber.entitlements && data.subscriber.entitlements[ENTITLEMENT];
     const active = entitlement && (!entitlement.expires_date || new Date(entitlement.expires_date) > new Date());
-    if (!active) throw fail(402, 'Sync needs an active Roster purchase');
+    if (!active) throw fail(402, 'Sync needs an active Speech Count Pro purchase');
 }
 
 const isArray = (v) => Array.isArray(v);
