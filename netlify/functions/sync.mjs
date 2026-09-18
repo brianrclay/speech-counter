@@ -24,17 +24,64 @@ async function assertPremium(userId) {
 
 const isArray = (v) => Array.isArray(v);
 
+// Records are stored as sent, so pin them to the shapes store.js creates:
+// known fields only, bounded strings, real dates, and non-negative counts.
+// Anything else is dropped rather than persisted for every other device.
+const MAX_TEXT = 200;
+const MAX_ROSTER = 20000;
+
+const id = (v) => (typeof v === 'string' && /^[\w-]{1,64}$/.test(v) ? v : null);
+const text = (v) => (typeof v === 'string' ? v.slice(0, MAX_TEXT) : '');
+const isoOrNull = (v) => {
+    if (typeof v !== 'string' || !v) return null;
+    const date = new Date(v);
+    return Number.isNaN(date.getTime()) ? null : date.toISOString();
+};
+const count = (v) => (Number.isInteger(v) && v >= 0 && v <= 1000000 ? v : 0);
+
+function cleanStudent(r) {
+    const rid = r && id(r.id);
+    if (!rid) return null;
+    return {
+        id: rid,
+        name: text(r.name),
+        nameKey: text(r.nameKey),
+        createdAt: isoOrNull(r.createdAt),
+        updatedAt: isoOrNull(r.updatedAt),
+        deletedAt: isoOrNull(r.deletedAt),
+    };
+}
+
+function cleanSession(r) {
+    const rid = r && id(r.id);
+    const studentId = r && id(r.studentId);
+    if (!rid || !studentId) return null;
+    return {
+        id: rid,
+        studentId,
+        target: text(r.target),
+        correct: count(r.correct),
+        incorrect: count(r.incorrect),
+        startedAt: isoOrNull(r.startedAt),
+        createdAt: isoOrNull(r.createdAt),
+        updatedAt: isoOrNull(r.updatedAt),
+        deletedAt: isoOrNull(r.deletedAt),
+    };
+}
+
 export default endpoint(async (req) => {
     const { userId } = verifyToken(req);
     await assertPremium(userId);
 
     const body = await req.json().catch(() => ({}));
-    const since = typeof body.since === 'string' ? body.since : '';
+    const since = typeof body.since === 'string' ? body.since.slice(0, 40) : '';
+    const rawStudents = isArray(body.students) ? body.students : [];
+    const rawSessions = isArray(body.sessions) ? body.sessions : [];
+    if (rawStudents.length + rawSessions.length > 5000) throw fail(413, 'Too many records in one sync');
     const incoming = {
-        students: isArray(body.students) ? body.students : [],
-        sessions: isArray(body.sessions) ? body.sessions : [],
+        students: rawStudents.map(cleanStudent).filter(Boolean),
+        sessions: rawSessions.map(cleanSession).filter(Boolean),
     };
-    if (incoming.students.length + incoming.sessions.length > 5000) throw fail(413, 'Too many records in one sync');
 
     // Deltas are cut on server time (syncedAt), not the record's updatedAt,
     // so a device with a slow clock can't push a change that other devices
@@ -45,6 +92,7 @@ export default endpoint(async (req) => {
     const store = getStore({ name: 'rosters', consistency: 'strong' });
     const saved = (await store.get(userId, { type: 'json' })) || { students: [], sessions: [] };
     const changed = mergeRecords(saved.students, incoming.students) + mergeRecords(saved.sessions, incoming.sessions);
+    if (saved.students.length + saved.sessions.length > MAX_ROSTER) throw fail(413, 'This roster is too large to sync');
     if (changed > 0) await store.setJSON(userId, saved);
 
     const after = (r) => !since || (r.syncedAt || '') > since;

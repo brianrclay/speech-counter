@@ -4,9 +4,11 @@
 //
 // Credentials come from the STAGING_USER / STAGING_PASSWORD env vars on the
 // Netlify site, scoped to the deploy-preview and branch-deploy contexts.
-export default async (request) => {
-    const context = Netlify.env.get('CONTEXT');
-    if (context !== 'deploy-preview' && context !== 'branch-deploy') return;
+export default async (request, context) => {
+    // CONTEXT is a build-time variable and isn't visible to edge functions at
+    // runtime; the deploy context comes from the handler's context object.
+    const deployContext = context.deploy && context.deploy.context;
+    if (deployContext !== 'deploy-preview' && deployContext !== 'branch-deploy') return;
 
     const user = Netlify.env.get('STAGING_USER');
     const password = Netlify.env.get('STAGING_PASSWORD');

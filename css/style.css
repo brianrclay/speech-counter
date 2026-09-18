@@ -9,26 +9,19 @@
 @font-face {
   font-family: 'Inter';
   font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('../assets/fonts/inter-latin-500-normal.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
   font-weight: 600;
   font-display: swap;
   src: url('../assets/fonts/inter-latin-600-normal.woff2') format('woff2');
 }
 
-@font-face {
-  font-family: 'Inter';
-  font-style: normal;
-  font-weight: 700;
-  font-display: swap;
-  src: url('../assets/fonts/inter-latin-700-normal.woff2') format('woff2');
-}
-
-@font-face {
-  font-family: 'Inter';
-  font-style: normal;
-  font-weight: 800;
-  font-display: swap;
-  src: url('../assets/fonts/inter-latin-800-normal.woff2') format('woff2');
-}
 
 :root {
   color-scheme: light dark;
@@ -173,10 +166,6 @@ h3 {
   font-family: 'Inter', sans-serif;
   font-size: 16px;
   letter-spacing: 0;
-}
-
-.bold {
-  font-weight: 700;
 }
 
 button {
@@ -485,7 +474,7 @@ button:disabled {
   background: var(--incorrect);
   color: #ffffff;
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 600;
   white-space: nowrap;
 }
 

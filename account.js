@@ -8,11 +8,15 @@
     const billing = window.SpeechBilling;
 
     function apiBase() {
-        try {
-            const override = localStorage.getItem('speech-counter:api-base');
-            if (override) return override;
-        } catch (err) {
-            // ignore
+        const host = location.hostname;
+        const staging = host === 'localhost' || host === '127.0.0.1' || host.endsWith('.netlify.app');
+        if (staging) {
+            try {
+                const override = localStorage.getItem('speech-counter:api-base');
+                if (override) return override;
+            } catch (err) {
+                // ignore
+            }
         }
         if (billing.platform() !== 'web') return 'https://speechcount.com';
         if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') return 'http://localhost:8888';
