@@ -124,10 +124,20 @@
         return id;
     }
 
+    // Staging uses the sandbox key (Stripe test mode) unless the tester opts
+    // into live billing for that browser with
+    // localStorage.setItem('speech-counter:rc-live', '1'). Production always
+    // uses the live key.
     function webKey() {
         const host = location.hostname;
         const staging = host === 'localhost' || host === '127.0.0.1' || host.endsWith('.netlify.app');
-        return staging ? RC_KEYS.webSandbox : RC_KEYS.web;
+        if (!staging) return RC_KEYS.web;
+        try {
+            if (localStorage.getItem('speech-counter:rc-live') === '1') return RC_KEYS.web;
+        } catch (err) {
+            // Storage unavailable - stay on sandbox.
+        }
+        return RC_KEYS.webSandbox;
     }
 
     async function webImpl() {
