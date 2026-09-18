@@ -408,11 +408,21 @@ button:disabled {
   height: 20px;
 }
 
-@media (max-width: 360px) {
+@media (max-width: 400px) {
+  .tab-bar {
+    gap: 8px;
+  }
+
   .tab {
     gap: 6px;
     padding: 12px 8px;
-    font-size: 14px;
+  }
+}
+
+/* Very narrow phones: only the active tab keeps its label. */
+@media (max-width: 340px) {
+  .tab:not([aria-current="page"]) span {
+    display: none;
   }
 }
 
