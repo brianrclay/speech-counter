@@ -325,7 +325,7 @@
     }
 
     // Records arriving from another device via sync. Same last-write-wins
-    // merge as a backup import, then anything on screen re-renders.
+    // merge by id, then anything on screen re-renders.
     function applyRemote({ students: incomingStudents, sessions: incomingSessions }) {
         const changed = mergeRecords(cache.students, incomingStudents || [])
             + mergeRecords(cache.sessions, incomingSessions || []);
@@ -362,9 +362,9 @@
         return /[",\r\n]/.test(text) ? '"' + text.replace(/"/g, '""') + '"' : text;
     }
 
-    // One row per session, plus a bare row for any student with no sessions
-    // so they survive a round trip. The trailing ID columns are what make
-    // re-importing an exported file idempotent.
+    // One row per session, plus a bare row for any student with no sessions.
+    // The trailing ID columns let a spreadsheet be matched back to the app's
+    // records if that's ever needed.
     function exportCSV() {
         const rows = [CSV_COLUMNS];
         students.list().forEach((student) => {
@@ -383,72 +383,8 @@
         return '﻿' + rows.map((row) => row.map(csvCell).join(',')).join('\r\n') + '\r\n';
     }
 
-    function parseCSV(text) {
-        const rows = [];
-        let row = [];
-        let cell = '';
-        let quoted = false;
-        const src = text.replace(/^﻿/, '');
-        for (let i = 0; i < src.length; i += 1) {
-            const ch = src[i];
-            if (quoted) {
-                if (ch === '"') {
-                    if (src[i + 1] === '"') {
-                        cell += '"';
-                        i += 1;
-                    } else {
-                        quoted = false;
-                    }
-                } else {
-                    cell += ch;
-                }
-            } else if (ch === '"') {
-                quoted = true;
-            } else if (ch === ',') {
-                row.push(cell);
-                cell = '';
-            } else if (ch === '\n' || ch === '\r') {
-                if (ch === '\r' && src[i + 1] === '\n') i += 1;
-                row.push(cell);
-                rows.push(row);
-                row = [];
-                cell = '';
-            } else {
-                cell += ch;
-            }
-        }
-        if (cell !== '' || row.length > 0) {
-            row.push(cell);
-            rows.push(row);
-        }
-        return rows.filter((r) => r.some((c) => c.trim() !== ''));
-    }
-
-    const CSV_HEADER_ALIASES = {
-        student: 'student', name: 'student', studentname: 'student',
-        target: 'target',
-        correct: 'correct',
-        incorrect: 'incorrect',
-        date: 'date', startedat: 'date', started: 'date',
-        updated: 'updated', updatedat: 'updated',
-        sessionid: 'sessionId', id: 'sessionId',
-        studentid: 'studentId',
-    };
-
-    function isoOrNull(value) {
-        const text = String(value || '').trim();
-        if (!text) return null;
-        const date = new Date(text);
-        return Number.isNaN(date.getTime()) ? null : date.toISOString();
-    }
-
-    function countOrZero(value) {
-        const n = parseInt(String(value || '').trim(), 10);
-        return Number.isFinite(n) && n >= 0 ? n : 0;
-    }
-
     // Merges by id, keeping whichever copy was updated most recently, so an
-    // older backup never clobbers newer work on this device.
+    // older copy from another device never clobbers newer work on this one.
     function mergeRecords(into, incoming) {
         let changed = 0;
         incoming.forEach((record) => {
@@ -463,74 +399,6 @@
             }
         });
         return changed;
-    }
-
-    function importJSON(text) {
-        const data = JSON.parse(text);
-        if (!data || !Array.isArray(data.students) || !Array.isArray(data.sessions)) {
-            throw new Error('Not a Speech Count backup');
-        }
-        const changed = mergeRecords(cache.students, data.students) + mergeRecords(cache.sessions, data.sessions);
-        persist('students');
-        persist('sessions');
-        return changed;
-    }
-
-    // Students are matched by ID, then by name, and never overwritten - a
-    // spreadsheet is a poor source of truth for a rename. Sessions merge
-    // the same way JSON backups do; rows without a Session ID (typed into
-    // a spreadsheet by hand) are added as new sessions.
-    function importCSV(text) {
-        const rows = parseCSV(text);
-        if (rows.length === 0) throw new Error('The file is empty');
-        const header = rows[0].map((h) => CSV_HEADER_ALIASES[h.trim().toLowerCase().replace(/[^a-z]/g, '')] || null);
-        if (!header.includes('student')) throw new Error('Missing a Student column');
-
-        let changed = 0;
-        const incomingSessions = [];
-        rows.slice(1).forEach((cells) => {
-            const row = {};
-            header.forEach((key, i) => {
-                if (key) row[key] = cells[i] || '';
-            });
-            const name = cleanName(row.student);
-            if (!name) return;
-
-            const id = String(row.studentId || '').trim();
-            let student = (id && students.get(id)) || students.findByName(name);
-            if (!student) {
-                const stamp = now();
-                student = { id: id || uuid(), name, nameKey: nameKey(name), createdAt: stamp, updatedAt: stamp, deletedAt: null };
-                cache.students.push(student);
-                changed += 1;
-            }
-
-            const target = cleanName(row.target);
-            if (!target && !String(row.correct || '').trim() && !String(row.incorrect || '').trim()) return;
-
-            const startedAt = isoOrNull(row.date) || now();
-            incomingSessions.push({
-                id: String(row.sessionId || '').trim() || uuid(),
-                studentId: student.id,
-                target,
-                correct: countOrZero(row.correct),
-                incorrect: countOrZero(row.incorrect),
-                startedAt,
-                createdAt: startedAt,
-                updatedAt: isoOrNull(row.updated) || startedAt,
-                deletedAt: null,
-            });
-        });
-
-        changed += mergeRecords(cache.sessions, incomingSessions);
-        persist('students');
-        persist('sessions');
-        return changed;
-    }
-
-    function importText(text) {
-        const body = String(text || '').replace(/^﻿/, '').trimStart();
-        return body.startsWith('{') ? importJSON(body) : importCSV(body);
     }
 
     window.addEventListener('pagehide', flush);
@@ -553,8 +421,5 @@
         mergeRecords,
         exportJSON,
         exportCSV,
-        importJSON,
-        importCSV,
-        importText,
     };
 })();

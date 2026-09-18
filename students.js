@@ -35,7 +35,6 @@
     const statTrials = document.getElementById('stat-trials');
     const statPercent = document.getElementById('stat-percent');
     const exportBtn = document.getElementById('export');
-    const importFile = document.getElementById('import-file');
     const template = document.querySelector('.row.template');
     const addStudentBtn = document.getElementById('add-student');
     const addStudentForm = document.getElementById('add-student-form');
@@ -106,6 +105,13 @@
             const percent = document.createElement('span');
             percent.className = 'student-card-percent';
             percent.textContent = summary.trials === 0 ? '–' : summary.percent + '%';
+            if (summary.trials !== 0) {
+                const label = document.createElement('span');
+                label.className = 'sr-only';
+                label.textContent = ' correct';
+                percent.appendChild(label);
+            }
+            card.setAttribute('aria-describedby', 'select-hint');
 
             card.append(check, name, meta, percent);
             item.appendChild(card);
@@ -207,6 +213,16 @@
         studentList.addEventListener(type, cancelPress);
     });
 
+    // Space is the keyboard route into select mode (and toggles once there).
+    studentList.addEventListener('keydown', (event) => {
+        if (event.key !== ' ') return;
+        const card = event.target.closest('.student-card');
+        if (!card) return;
+        event.preventDefault();
+        if (selecting) toggleSelected(card.dataset.id);
+        else enterSelectMode(card.dataset.id);
+    });
+
     // iOS shows a link preview / callout on long-press of an <a>.
     studentList.addEventListener('contextmenu', (event) => {
         if (event.target.closest('.student-card')) event.preventDefault();
@@ -218,6 +234,12 @@
         if (suppressCardClick) {
             suppressCardClick = false;
             event.preventDefault();
+            return;
+        }
+        // Tapping the circle is a shortcut for the long press.
+        if (!selecting && event.target.closest('.student-check')) {
+            event.preventDefault();
+            enterSelectMode(card.dataset.id);
             return;
         }
         if (!selecting) return;
@@ -340,6 +362,7 @@
             listView.hidden = true;
             document.title = 'Purchase completed - Speech Count';
             window.scrollTo(0, 0);
+            purchaseDone.querySelector('.purchase-done-title').focus();
             return;
         }
         if (!premium) {
@@ -473,6 +496,7 @@
         target.type = 'text';
         target.className = 'session-target-input';
         target.placeholder = 'Target';
+        target.setAttribute('aria-label', 'Target');
         target.value = session.target;
         row.querySelector('.session-target').replaceChildren(target);
 
@@ -576,19 +600,6 @@
 
     exportBtn.addEventListener('click', exportBackup);
 
-    importFile.addEventListener('change', async () => {
-        const file = importFile.files[0];
-        importFile.value = '';
-        if (!file) return;
-        try {
-            const changed = store.importText(await file.text());
-            alert(changed === 0 ? 'Nothing new to import.' : 'Imported ' + plural(changed, 'record') + '.');
-            route();
-        } catch (err) {
-            alert('Could not import that file: ' + err.message);
-        }
-    });
-
     // Paywall
 
     let paywallViewed = false;
@@ -672,8 +683,16 @@
         }
     }
 
-    planButtons.forEach((button) => {
+    planButtons.forEach((button, index) => {
         button.addEventListener('click', () => selectPlan(button.dataset.package));
+        button.addEventListener('keydown', (event) => {
+            const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[event.key];
+            if (!step) return;
+            event.preventDefault();
+            const next = planButtons[(index + step + planButtons.length) % planButtons.length];
+            selectPlan(next.dataset.package);
+            next.focus();
+        });
     });
 
     buyBtn.addEventListener('click', () => buy(selectedPackage));

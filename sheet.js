@@ -59,9 +59,12 @@
         codeField.disabled = value;
     }
 
+    const behind = [...document.querySelectorAll('main, header.app-header, nav.tab-bar')];
+
     function open(options) {
         onSignedIn = options.onSignedIn || null;
         opener = document.activeElement;
+        behind.forEach((el) => { el.inert = true; });
         title.textContent = options.title || 'Create account to purchase';
         planSlot.hidden = !options.plan;
         planSlot.replaceChildren();
@@ -81,6 +84,7 @@
     function close() {
         if (sheet.hidden) return;
         sheet.classList.remove('open');
+        behind.forEach((el) => { el.inert = false; });
         const finish = () => {
             sheet.hidden = true;
             if (opener && opener.focus) opener.focus();

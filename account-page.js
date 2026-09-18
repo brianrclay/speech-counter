@@ -21,6 +21,7 @@
     const planMeta = document.getElementById('plan-meta');
     const planStatus = document.getElementById('plan-status');
     const manageSubscription = document.getElementById('manage-subscription');
+    const manageSubscriptionLabel = document.getElementById('manage-subscription-label');
     const planCta = document.getElementById('plan-cta');
     const restoreBtn = document.getElementById('restore-purchases');
     const danger = document.getElementById('account-danger');
@@ -60,7 +61,7 @@
         const premium = store.entitlements.isPremium();
         const price = prices && entitlement.productId && prices[entitlement.productId];
         planStatus.className = 'plan-status';
-        manageSubscription.textContent = 'Manage subscription';
+        manageSubscriptionLabel.textContent = 'Manage subscription';
         if (!premium) {
             planStatus.textContent = 'Not active';
             planMeta.textContent = 'Manage all your students and sync across your devices.';
@@ -79,7 +80,7 @@
         } else {
             planStatus.textContent = 'Expiring soon';
             planMeta.textContent = ['Expires on ' + dateFormat.format(new Date(entitlement.expiresAt)), price].filter(Boolean).join(' \u2022 ');
-            manageSubscription.textContent = 'Resubscribe';
+            manageSubscriptionLabel.textContent = 'Resubscribe';
         }
         manageSubscription.hidden = !(premium && entitlement.managementURL);
         if (entitlement.managementURL) manageSubscription.href = entitlement.managementURL;

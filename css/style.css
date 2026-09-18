@@ -53,11 +53,17 @@
   --tab-fg: #6448d6;
   --tab-active-bg: #6448d6;
   --tab-active-fg: #ffffff;
+  --on-accent: #ffffff;
 
   --correct: #0ea57a;
   --correct-soft: #d9f5ea;
+  --correct-text: #0b7f5e;
   --incorrect: #d8492a;
   --incorrect-soft: #fbe6df;
+  --incorrect-text: #b83a1f;
+
+  --input-border: #8f85a8;
+  --focus-ring: color-mix(in srgb, var(--accent) 45%, transparent);
 
   --disabled: #b6afc7;
 
@@ -106,9 +112,14 @@
     --tab-fg: #f2a9da;
     --tab-active-bg: #f2a9da;
     --tab-active-fg: #2e2040;
+    --on-accent: #1f1529;
 
     --correct-soft: #103a2c;
+    --correct-text: #0ea57a;
     --incorrect-soft: #3d2019;
+    --incorrect-text: #e86a4d;
+
+    --input-border: #7a6a94;
 
     --disabled: #5c5270;
 
@@ -123,6 +134,18 @@
 
 [hidden] {
   display: none !important;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 body {
@@ -279,12 +302,12 @@ button:disabled {
 }
 
 .btn-danger {
-  color: var(--incorrect);
+  color: var(--incorrect-text);
 }
 
 .btn-danger:hover {
   background-color: var(--incorrect-soft);
-  color: var(--incorrect);
+  color: var(--incorrect-text);
 }
 
 .link-btn {
@@ -309,7 +332,7 @@ button:disabled {
   min-height: 45px;
   padding: 12px;
   border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
+  border: 1px solid var(--input-border);
   background-color: var(--bg);
   color: var(--text);
   /* 16px avoids iOS Safari auto-zooming the page on focus. */
@@ -326,7 +349,7 @@ button:disabled {
 .field:focus {
   outline: none;
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-soft);
+  box-shadow: 0 0 0 3px var(--focus-ring);
 }
 
 /* Bottom tab bar */
@@ -592,7 +615,7 @@ button:disabled {
 }
 
 .delete-row:hover {
-  color: var(--incorrect);
+  color: var(--incorrect-text);
   background-color: var(--incorrect-soft);
 }
 
@@ -720,7 +743,8 @@ button:disabled {
   transition: background-color 160ms var(--ease);
 }
 
-/* The outline circle on every card is also the checkbox in select mode. */
+/* The outline circle on every card is also the checkbox in select mode;
+   tapping it enters select mode. ::before pads the tap target to 44px. */
 .student-check {
   grid-area: check;
   align-self: start;
@@ -732,6 +756,12 @@ button:disabled {
   background: var(--surface);
   position: relative;
   transition: background-color 160ms var(--ease), border-color 160ms var(--ease);
+}
+
+.student-check::before {
+  content: '';
+  position: absolute;
+  inset: -14px;
 }
 
 .student-check::after {
@@ -825,7 +855,7 @@ button:disabled {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: var(--row-gap);
+  margin-bottom: 24px;
 }
 
 .list-toolbar .field {
@@ -856,7 +886,7 @@ button:disabled {
   min-height: 45px;
   padding: 12px;
   border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
+  border: 1px solid var(--input-border);
   background-color: var(--bg);
   color: var(--text);
   font-size: 16px;
@@ -870,7 +900,7 @@ button:disabled {
 .signin-input:focus {
   outline: none;
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-soft);
+  box-shadow: 0 0 0 3px var(--focus-ring);
 }
 
 #detail-view {
@@ -881,7 +911,8 @@ button:disabled {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 16px;
+  min-height: 44px;
+  margin: -12px 0 4px;
   color: var(--accent);
   font-weight: 500;
   text-decoration: none;
@@ -958,7 +989,12 @@ button:disabled {
   color: var(--text-muted);
 }
 
+/* Same box in both states so the card doesn't resize when editing. */
 .session-target {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 45px;
   font-size: 16px;
   font-weight: 600;
   overflow-wrap: anywhere;
@@ -967,9 +1003,10 @@ button:disabled {
 .session-percent {
   font-size: 12px;
   font-weight: 500;
-  margin-bottom: 6px;
 }
 
+/* Read-only counts are outlined, not filled, so they don't read as
+   tappable; in edit mode they take the standard field styling. */
 .session-count {
   display: inline-flex;
   align-items: center;
@@ -977,22 +1014,35 @@ button:disabled {
   justify-self: end;
   width: var(--ticker-size);
   height: calc(var(--ticker-size) * 0.72);
+  border: 1px solid currentColor;
   border-radius: var(--radius-sm);
   font-size: clamp(22px, 7vw, 28px);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
-  color: #ffffff;
 }
 
 .session-correct {
-  background-color: var(--correct);
+  color: var(--correct-text);
 }
 
 .session-incorrect {
-  background-color: var(--incorrect);
+  color: var(--incorrect-text);
+}
+
+.row.editing .session-count {
+  border-color: var(--input-border);
+  background-color: var(--bg);
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.row.editing .session-count:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--focus-ring);
 }
 
 .session-actions {
+  grid-column: 1 / -1;
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
@@ -1033,9 +1083,12 @@ button:disabled {
   display: inline-flex;
 }
 
-.row.editing .delete-row,
-.row.editing .session-percent {
+.row.editing .delete-row {
   display: none;
+}
+
+.row.editing .session-percent {
+  visibility: hidden;
 }
 
 .row.editing .edit-session {
@@ -1043,16 +1096,12 @@ button:disabled {
   color: var(--tab-active-fg);
 }
 
-.row.editing .session-target {
-  width: 100%;
-  margin-bottom: 6px;
-}
-
 .session-target-input {
   width: 100%;
-  padding: 8px 10px;
+  height: 45px;
+  padding: 0 12px;
   border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
+  border: 1px solid var(--input-border);
   background-color: var(--bg);
   color: var(--text);
   font-size: 16px;
@@ -1078,14 +1127,14 @@ button:disabled {
   margin: 0;
 }
 
-.session-target-input:focus,
-.session-count-input:focus {
+.session-target-input:focus {
   outline: none;
-  box-shadow: 0 0 0 3px var(--accent-soft);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--focus-ring);
 }
 
 .session-count-input:focus {
-  box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.55);
+  outline: none;
 }
 
 .delete-student {
@@ -1095,7 +1144,7 @@ button:disabled {
   border: none;
   border-radius: var(--radius-pill);
   background: none;
-  color: var(--incorrect);
+  color: var(--incorrect-text);
   font-weight: 600;
   transition: background-color 160ms var(--ease);
 }
@@ -1421,7 +1470,6 @@ body.celebrating {
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   background: var(--accent);
-  color: var(--tab-active-fg);
   text-align: center;
 }
 
@@ -1430,14 +1478,17 @@ body.celebrating {
   gap: 8px;
 }
 
+.promo-title,
+.promo-lead {
+  color: var(--on-accent);
+}
+
 .promo-title {
-  color: inherit;
   font-size: 18px;
   font-weight: 600;
 }
 
 .promo-lead {
-  color: inherit;
   font-size: 12px;
   font-weight: 500;
   line-height: 1.25;
@@ -1590,7 +1641,7 @@ body.celebrating {
 .sheet-status {
   font-size: 14px;
   line-height: 1.4;
-  color: var(--incorrect);
+  color: var(--incorrect-text);
 }
 
 .sheet-status:empty {
@@ -1661,7 +1712,7 @@ body.celebrating {
 }
 
 .billing-banner a {
-  color: var(--incorrect);
+  color: var(--incorrect-text);
   font-weight: 600;
 }
 
@@ -1724,11 +1775,11 @@ body.celebrating {
 }
 
 .plan-status.active {
-  color: var(--correct);
+  color: var(--correct-text);
 }
 
 .plan-status.issue {
-  color: var(--incorrect);
+  color: var(--incorrect-text);
 }
 
 .account-link {
@@ -1768,7 +1819,7 @@ body.celebrating {
   padding-left: 0;
   padding-right: 0;
   background: none;
-  color: var(--incorrect);
+  color: var(--incorrect-text);
   font-weight: 600;
 }
 

@@ -31,7 +31,7 @@
         })();
     </script>
     <title>Account - Speech Count</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="description" content="Your Speech Count account and plan">
     <meta name="color-scheme" content="light dark">
     <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
@@ -76,7 +76,7 @@
                 <div class="account-row">
                     <div class="account-text">
                         <strong id="account-email"></strong>
-                        <span id="account-sync-status">Synced</span>
+                        <span id="account-sync-status" aria-live="polite">Synced</span>
                     </div>
                 </div>
                 <p class="account-support">Support ID: <code id="support-id">-</code></p>
@@ -93,7 +93,7 @@
                     </div>
                     <span id="plan-status" class="plan-status"></span>
                 </div>
-                <a id="manage-subscription" class="account-link" href="#" target="_blank" rel="noopener" hidden>Manage subscription</a>
+                <a id="manage-subscription" class="account-link" href="#" target="_blank" rel="noopener" hidden><span id="manage-subscription-label">Manage subscription</span><span class="sr-only"> (opens in a new tab)</span></a>
                 <a id="plan-cta" class="account-link" href="./students.html" hidden>Get Speech Count Pro</a>
                 <button type="button" id="restore-purchases" class="link-btn account-link" hidden>Restore purchases</button>
             </div>

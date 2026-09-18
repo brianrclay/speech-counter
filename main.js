@@ -78,7 +78,9 @@
         const total = correct + incorrect;
         const percent = total === 0 ? 0 : Math.ceil((correct / total) * 100);
         row.querySelector('.ticker.correct').textContent = correct;
+        row.querySelector('.ticker.correct').setAttribute('aria-label', correct + ' correct');
         row.querySelector('.ticker.incorrect').textContent = incorrect;
+        row.querySelector('.ticker.incorrect').setAttribute('aria-label', incorrect + ' incorrect');
         row.querySelector('.totalCount').textContent = total;
         row.querySelector('.percentValue').textContent = percent + '%';
     }
