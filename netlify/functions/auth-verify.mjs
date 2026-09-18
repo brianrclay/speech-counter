@@ -1,6 +1,12 @@
 import { endpoint, json, fail, normalizeEmail, codeMatches, isReviewer, userIdFor, issueToken } from './lib/common.mjs';
 
-export const config = { path: '/api/auth-verify' };
+// Codes are six digits and valid for two ten-minute windows; without a cap
+// on attempts they could be brute-forced, and a guessed code opens the
+// account's roster.
+export const config = {
+    path: '/api/auth-verify',
+    rateLimit: { windowLimit: 10, windowSize: 60, aggregateBy: ['ip'], action: 'rate_limit' },
+};
 
 export default endpoint(async (req) => {
     const body = await req.json().catch(() => ({}));

@@ -1,6 +1,11 @@
 import { endpoint, json, fail, env, normalizeEmail, currentCode, isReviewer } from './lib/common.mjs';
 
-export const config = { path: '/api/auth-code' };
+// Each request sends an email, so keep one client from turning this into a
+// spam cannon or running up the Resend bill.
+export const config = {
+    path: '/api/auth-code',
+    rateLimit: { windowLimit: 5, windowSize: 60, aggregateBy: ['ip'], action: 'rate_limit' },
+};
 
 async function sendEmail(email, code) {
     const response = await fetch('https://api.resend.com/emails', {
