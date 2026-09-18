@@ -178,6 +178,22 @@
             </div>
             <div class="list-toolbar">
                 <input type="search" id="student-search" class="field" placeholder="Search" aria-label="Search students" autocomplete="off">
+                <div class="sort-menu">
+                    <button type="button" id="sort-btn" class="btn btn-icon" aria-label="Sort students" aria-haspopup="menu"
+                        aria-expanded="false" aria-controls="sort-options">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round">
+                            <path d="m21 16-4 4-4-4" />
+                            <path d="M17 20V4" />
+                            <path d="m3 8 4-4 4 4" />
+                            <path d="M7 4v16" />
+                        </svg>
+                    </button>
+                    <div id="sort-options" class="menu" role="menu" aria-label="Sort students" hidden>
+                        <button type="button" class="menu-item" role="menuitemradio" aria-checked="true" data-sort="updated">Last updated</button>
+                        <button type="button" class="menu-item" role="menuitemradio" aria-checked="false" data-sort="name">A to Z</button>
+                    </div>
+                </div>
                 <button type="button" id="add-student" class="add-btn" aria-label="Add student">
                     <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                         stroke-linecap="round" stroke-linejoin="round">

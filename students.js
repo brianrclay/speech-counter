@@ -45,6 +45,9 @@
     const newStudentName = document.getElementById('new-student-name');
     const cancelAddStudent = document.getElementById('cancel-add-student');
     const listToolbar = document.querySelector('.list-toolbar');
+    const sortBtn = document.getElementById('sort-btn');
+    const sortMenu = document.getElementById('sort-options');
+    const sortItems = [...sortMenu.querySelectorAll('.menu-item')];
     const bulkToolbar = document.getElementById('bulk-toolbar');
     const bulkSelectAll = document.getElementById('bulk-select-all');
     const bulkCount = document.getElementById('bulk-count');
@@ -59,6 +62,18 @@
     let currentId = null;
     let selecting = false;
     const selected = new Set();
+
+    const SORT_KEY = 'speech-counter:student-sort';
+    const SORTS = {
+        updated: (a, b) => (a.changedAt > b.changedAt ? -1 : a.changedAt < b.changedAt ? 1 : 0),
+        name: (a, b) => a.student.name.localeCompare(b.student.name, undefined, { sensitivity: 'base' }),
+    };
+    let sortMode = 'updated';
+    try {
+        if (SORTS[localStorage.getItem(SORT_KEY)]) sortMode = localStorage.getItem(SORT_KEY);
+    } catch (err) {
+        // Storage unavailable; the default applies.
+    }
 
     function percentOf(correct, incorrect) {
         const total = correct + incorrect;
@@ -79,7 +94,7 @@
                 const summary = summaries.get(student.id) || empty;
                 return { student, summary, changedAt: summary.lastAt || student.updatedAt };
             })
-            .sort((a, b) => (a.changedAt > b.changedAt ? -1 : a.changedAt < b.changedAt ? 1 : 0));
+            .sort(SORTS[sortMode]);
 
         studentList.textContent = '';
         students.forEach(({ student, summary }) => {
@@ -421,6 +436,68 @@
     }
 
     searchInput.addEventListener('input', renderList);
+
+    // Sort menu: a small popover under the icon button; the choice persists.
+    function renderSortMenu() {
+        sortItems.forEach((item) => item.setAttribute('aria-checked', item.dataset.sort === sortMode ? 'true' : 'false'));
+    }
+
+    function openSortMenu() {
+        renderSortMenu();
+        sortMenu.hidden = false;
+        sortBtn.setAttribute('aria-expanded', 'true');
+        (sortItems.find((item) => item.dataset.sort === sortMode) || sortItems[0]).focus();
+    }
+
+    function closeSortMenu(refocus) {
+        if (sortMenu.hidden) return;
+        sortMenu.hidden = true;
+        sortBtn.setAttribute('aria-expanded', 'false');
+        if (refocus) sortBtn.focus();
+    }
+
+    function setSort(mode) {
+        sortMode = mode;
+        try {
+            localStorage.setItem(SORT_KEY, mode);
+        } catch (err) {
+            // Storage unavailable; the choice lasts for this page.
+        }
+        renderSortMenu();
+        renderList();
+    }
+
+    sortBtn.addEventListener('click', () => {
+        if (sortMenu.hidden) openSortMenu();
+        else closeSortMenu(true);
+    });
+
+    sortItems.forEach((item, index) => {
+        item.addEventListener('click', () => {
+            setSort(item.dataset.sort);
+            closeSortMenu(true);
+        });
+        item.addEventListener('keydown', (event) => {
+            const step = { ArrowDown: 1, ArrowUp: -1 }[event.key];
+            if (step) {
+                event.preventDefault();
+                sortItems[(index + step + sortItems.length) % sortItems.length].focus();
+            }
+        });
+    });
+
+    document.addEventListener('click', (event) => {
+        if (!sortMenu.hidden && !event.target.closest('.sort-menu')) closeSortMenu(false);
+    });
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && !sortMenu.hidden) {
+            event.stopPropagation();
+            closeSortMenu(true);
+        }
+    });
+
+    renderSortMenu();
 
     function showAddStudent(show) {
         addStudentForm.hidden = !show;

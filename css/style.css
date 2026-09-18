@@ -866,6 +866,78 @@ button:disabled {
   flex-shrink: 0;
 }
 
+.btn-icon {
+  width: 45px;
+  height: 45px;
+  padding: 0;
+  justify-content: center;
+}
+
+.btn-icon .icon {
+  width: 20px;
+  height: 20px;
+}
+
+.btn[aria-expanded="true"] {
+  background-color: var(--chip-hover);
+}
+
+.sort-menu {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 15;
+  min-width: 180px;
+  padding: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 12px;
+  border: none;
+  border-radius: 8px;
+  background: none;
+  color: var(--text);
+  font-size: 16px;
+  font-weight: 500;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.menu-item:hover,
+.menu-item:focus-visible {
+  background-color: var(--chip-bg);
+  outline: none;
+}
+
+.menu-item::after {
+  content: '';
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  background-color: var(--accent);
+  -webkit-mask: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17L4 12"/></svg>') center / 100% no-repeat;
+  mask: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17L4 12"/></svg>') center / 100% no-repeat;
+  opacity: 0;
+}
+
+.menu-item[aria-checked="true"]::after {
+  opacity: 1;
+}
+
 .add-student-form {
   display: flex;
   flex-wrap: wrap;
