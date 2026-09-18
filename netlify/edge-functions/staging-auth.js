@@ -16,11 +16,19 @@ export default async (request, context) => {
         return new Response('Staging credentials are not configured', { status: 503, headers: { 'Cache-Control': 'no-store' } });
     }
 
+    // A header that isn't valid base64 (some browsers send odd partial
+    // credentials) counts as no credentials rather than crashing the function.
     const header = request.headers.get('authorization') || '';
     const [scheme, encoded] = header.split(' ');
     if (scheme === 'Basic' && encoded) {
-        const [givenUser, ...rest] = atob(encoded).split(':');
-        if (givenUser === user && rest.join(':') === password) return;
+        let decoded = '';
+        try {
+            decoded = atob(encoded);
+        } catch (err) {
+            decoded = '';
+        }
+        const [givenUser, ...rest] = decoded.split(':');
+        if (decoded && givenUser === user && rest.join(':') === password) return;
     }
 
     return new Response('Authentication required', {
