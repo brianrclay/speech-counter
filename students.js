@@ -12,6 +12,10 @@
     const paywallSigninToggle = document.getElementById('paywall-signin-toggle');
     const restoreBtn = document.getElementById('restore-purchases');
     const planButtons = [...document.querySelectorAll('.plan[data-package]')];
+    const paywallExport = document.getElementById('paywall-export');
+    const paywallExportCount = document.getElementById('paywall-export-count');
+    const paywallExportBtn = document.getElementById('paywall-export-btn');
+    const storageBanner = document.getElementById('storage-banner');
     const buyBtn = document.getElementById('buy');
     const buyLabel = document.getElementById('buy-label');
     const buyPrice = document.getElementById('buy-price');
@@ -67,10 +71,12 @@
 
     function renderList() {
         const key = store.nameKey(searchInput.value);
+        const summaries = store.sessions.summaryMap();
+        const empty = { count: 0, trials: 0, correct: 0, percent: 0, lastAt: null };
         const students = store.students.list()
             .filter((s) => !key || s.nameKey.includes(key))
             .map((student) => {
-                const summary = store.sessions.summary(student.id);
+                const summary = summaries.get(student.id) || empty;
                 return { student, summary, changedAt: summary.lastAt || student.updatedAt };
             })
             .sort((a, b) => (a.changedAt > b.changedAt ? -1 : a.changedAt < b.changedAt ? 1 : 0));
@@ -282,7 +288,8 @@
     bulkDelete.addEventListener('click', () => {
         const ids = Array.from(selected).filter((id) => store.students.get(id));
         if (ids.length === 0) return;
-        const sessionCount = ids.reduce((sum, id) => sum + store.sessions.summary(id).count, 0);
+        const summaries = store.sessions.summaryMap();
+        const sessionCount = ids.reduce((sum, id) => sum + ((summaries.get(id) || {}).count || 0), 0);
         const who = ids.length === 1 ? store.students.get(ids[0]).name : plural(ids.length, 'student');
         const detail = sessionCount === 0 ? '' : ' and their ' + plural(sessionCount, 'session');
         if (!confirm('Delete ' + who + detail + '? This cannot be undone.')) return;
@@ -599,6 +606,10 @@
     }
 
     exportBtn.addEventListener('click', exportBackup);
+    paywallExportBtn.addEventListener('click', exportBackup);
+
+    window.addEventListener('speech:storage-error', () => { storageBanner.hidden = false; });
+    storageBanner.hidden = !store.storageFailed();
 
     // Paywall
 
@@ -633,6 +644,10 @@
             billing.track('paywall_view', { platform: billing.platform() });
         }
         selectPlan(selectedPackage);
+        // Records already on the device stay exportable after Pro lapses.
+        const saved = store.students.list().length;
+        paywallExport.hidden = saved === 0;
+        paywallExportCount.textContent = plural(saved, 'student');
         if (pricesLoaded) return;
         pricesLoaded = true;
         billing.offerings().then((packages) => {

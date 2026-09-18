@@ -1,29 +1,52 @@
 // Shared data layer for the board (index.html) and the Students page.
 //
-// Records carry a UUID, createdAt/updatedAt, and a deletedAt tombstone so a
-// future cloud sync can merge last-write-wins and propagate deletes without
+// Records carry a UUID, createdAt/updatedAt, and a deletedAt tombstone so
+// cloud sync can merge last-write-wins and propagate deletes without
 // changing the shape of anything stored on the device.
+//
+// Roster data (students, sessions, the board, and sync bookkeeping) lives in
+// a workspace: one for the device when signed out, and one per account
+// after sign-in. Switching accounts swaps workspaces, so nothing entered
+// under one account can be uploaded to another.
 //
 // Everything is loaded into memory once by ready(); after that every read is
 // synchronous and every write is debounced out to the adapter.
 (() => {
     'use strict';
 
-    const KEYS = {
+    const GLOBAL_KEYS = {
+        entitlement: 'speech-counter:entitlement:v1',
+        session: 'speech-counter:session:v1',
+    };
+
+    // The signed-out workspace keeps the original key names so existing
+    // installs carry their board and roster forward untouched.
+    const WORKSPACE_KEYS = {
         board: 'speech-counter-state-v1',
         students: 'speech-counter:students:v1',
         sessions: 'speech-counter:sessions:v1',
-        entitlement: 'speech-counter:entitlement:v1',
-        session: 'speech-counter:session:v1',
         sync: 'speech-counter:sync:v1',
+        pending: 'speech-counter:pending:v1',
     };
 
     const SAVE_DELAY = 150;
+    const TOMBSTONE_TTL_MS = 90 * 24 * 60 * 60 * 1000;
 
-    const cache = { board: null, students: [], sessions: [], entitlement: null, session: null, sync: null };
+    const cache = { board: null, students: [], sessions: [], sync: null, pending: null, entitlement: null, session: null };
     const saveTimers = {};
     const persistListeners = [];
     let readyPromise = null;
+    let workspace = null;
+    let storageFailed = false;
+
+    function workspaceKey(name, ws) {
+        const base = WORKSPACE_KEYS[name];
+        return ws === null ? base : base + ':' + ws;
+    }
+
+    function keyFor(name) {
+        return GLOBAL_KEYS[name] || workspaceKey(name, workspace);
+    }
 
     function nativePreferences() {
         const capacitor = window.Capacitor;
@@ -42,12 +65,18 @@
         }
     }
 
-    function localWrite(key, value) {
+    function localRemove(key) {
         try {
-            localStorage.setItem(key, value);
+            localStorage.removeItem(key);
         } catch (err) {
-            // Storage can be unavailable (private browsing, full, disabled) - not fatal.
+            // Nothing to remove, or storage unavailable.
         }
+    }
+
+    function reportStorageError() {
+        if (storageFailed) return;
+        storageFailed = true;
+        window.dispatchEvent(new CustomEvent('speech:storage-error'));
     }
 
     async function read(key) {
@@ -58,19 +87,34 @@
         if (value !== null && value !== undefined) return value;
 
         // First launch after the Preferences adapter shipped: carry the
-        // board/roster over from the WebView's localStorage.
+        // board/roster over from the WebView's localStorage, then drop the
+        // old copy so clearing the device later clears everything.
         const legacy = localRead(key);
-        if (legacy !== null) await prefs.set({ key, value: legacy });
+        if (legacy !== null) {
+            await prefs.set({ key, value: legacy });
+            localRemove(key);
+        }
         return legacy;
     }
 
     function write(key, value) {
         const prefs = nativePreferences();
         if (prefs) {
-            prefs.set({ key, value }).catch(() => {});
-        } else {
-            localWrite(key, value);
+            return prefs.set({ key, value }).then(() => { storageFailed = false; }, reportStorageError);
         }
+        try {
+            localStorage.setItem(key, value);
+            storageFailed = false;
+        } catch (err) {
+            reportStorageError();
+        }
+        return Promise.resolve();
+    }
+
+    function remove(key) {
+        localRemove(key);
+        const prefs = nativePreferences();
+        return prefs ? prefs.remove({ key }).catch(() => {}) : Promise.resolve();
     }
 
     function parse(raw, fallback) {
@@ -84,8 +128,10 @@
 
     function persist(name) {
         clearTimeout(saveTimers[name]);
+        const key = keyFor(name);
         saveTimers[name] = setTimeout(() => {
-            write(KEYS[name], JSON.stringify(cache[name]));
+            saveTimers[name] = null;
+            write(key, JSON.stringify(cache[name]));
         }, SAVE_DELAY);
         persistListeners.forEach((cb) => cb(name));
     }
@@ -95,35 +141,79 @@
     }
 
     function flush() {
+        const writes = [];
         Object.keys(saveTimers).forEach((name) => {
             if (!saveTimers[name]) return;
             clearTimeout(saveTimers[name]);
             saveTimers[name] = null;
-            write(KEYS[name], JSON.stringify(cache[name]));
+            writes.push(write(keyFor(name), JSON.stringify(cache[name])));
         });
+        return Promise.all(writes);
+    }
+
+    // Deleted records keep their id and timestamps so the deletion still
+    // propagates, but nothing identifying; after the tombstone horizon the
+    // record is dropped entirely.
+    function blank(record) {
+        if ('name' in record) {
+            record.name = '';
+            record.nameKey = '';
+        }
+        if ('target' in record) {
+            record.target = '';
+            record.correct = 0;
+            record.incorrect = 0;
+        }
+    }
+
+    function compact(list) {
+        const cutoff = Date.now() - TOMBSTONE_TTL_MS;
+        return list.filter((r) => {
+            if (!r.deletedAt) return true;
+            blank(r);
+            return new Date(r.deletedAt).getTime() > cutoff;
+        });
+    }
+
+    function asList(raw) {
+        const value = parse(raw, []);
+        return Array.isArray(value) ? value : [];
+    }
+
+    async function loadWorkspace(ws) {
+        const [board, students, sessions, sync, pending] = await Promise.all(
+            ['board', 'students', 'sessions', 'sync', 'pending'].map((name) => read(workspaceKey(name, ws))),
+        );
+        workspace = ws;
+        cache.board = parse(board, null);
+        cache.students = compact(asList(students));
+        cache.sessions = compact(asList(sessions));
+        cache.sync = parse(sync, null);
+        cache.pending = parse(pending, null) || { students: {}, sessions: {} };
     }
 
     function ready() {
         if (readyPromise) return readyPromise;
-        readyPromise = Promise.all([
-            read(KEYS.board), read(KEYS.students), read(KEYS.sessions),
-            read(KEYS.entitlement), read(KEYS.session), read(KEYS.sync),
-        ])
-            .then(([board, students, sessions, entitlement, session, sync]) => {
-                cache.board = parse(board, null);
-                cache.students = parse(students, []);
-                cache.sessions = parse(sessions, []);
+        readyPromise = Promise.all([read(GLOBAL_KEYS.entitlement), read(GLOBAL_KEYS.session)])
+            .then(async ([entitlement, session]) => {
                 cache.entitlement = parse(entitlement, null);
                 cache.session = parse(session, null);
-                cache.sync = parse(sync, null);
-                if (!Array.isArray(cache.students)) cache.students = [];
-                if (!Array.isArray(cache.sessions)) cache.sessions = [];
+                await loadWorkspace(cache.session && cache.session.userId ? cache.session.userId : null);
 
                 if (!nativePreferences() && navigator.storage && navigator.storage.persist) {
                     navigator.storage.persist().catch(() => {});
                 }
             });
         return readyPromise;
+    }
+
+    // Called when the signed-in account changes. Pending writes for the old
+    // workspace go out first so nothing is lost or written under the wrong key.
+    async function switchWorkspace(ws) {
+        if (ws === workspace) return;
+        await flush();
+        await loadWorkspace(ws);
+        window.dispatchEvent(new CustomEvent('speech:changed'));
     }
 
     function uuid() {
@@ -147,6 +237,13 @@
     }
 
     const live = (record) => !record.deletedAt;
+
+    // Local edits are remembered by id until sync has pushed them, so a
+    // device clock that jumps can't hide a change from the upload.
+    function markDirty(kind, record) {
+        cache.pending[kind][record.id] = record.updatedAt;
+        persist('pending');
+    }
 
     const students = {
         list() {
@@ -176,6 +273,7 @@
             };
             cache.students.push(student);
             persist('students');
+            markDirty('students', student);
             return student;
         },
         rename(id, name) {
@@ -186,6 +284,7 @@
             student.nameKey = nameKey(display);
             student.updatedAt = now();
             persist('students');
+            markDirty('students', student);
             return student;
         },
         remove(id) {
@@ -194,10 +293,14 @@
             const stamp = now();
             student.deletedAt = stamp;
             student.updatedAt = stamp;
+            blank(student);
+            markDirty('students', student);
             cache.sessions.forEach((session) => {
                 if (session.studentId === id && live(session)) {
                     session.deletedAt = stamp;
                     session.updatedAt = stamp;
+                    blank(session);
+                    markDirty('sessions', session);
                 }
             });
             persist('students');
@@ -223,6 +326,7 @@
             session.updatedAt = stamp;
             session.deletedAt = null;
             persist('sessions');
+            markDirty('sessions', session);
             return session;
         },
         update(id, { target, correct, incorrect }) {
@@ -233,6 +337,7 @@
             session.incorrect = incorrect;
             session.updatedAt = now();
             persist('sessions');
+            markDirty('sessions', session);
             return session;
         },
         remove(id) {
@@ -241,7 +346,9 @@
             const stamp = now();
             session.deletedAt = stamp;
             session.updatedAt = stamp;
+            blank(session);
             persist('sessions');
+            markDirty('sessions', session);
         },
         forStudent(studentId) {
             return cache.sessions
@@ -249,17 +356,28 @@
                 .sort((a, b) => (a.startedAt < b.startedAt ? 1 : -1));
         },
         summary(studentId) {
-            const list = sessions.forStudent(studentId);
-            let correct = 0;
-            let trials = 0;
-            let lastAt = null;
-            list.forEach((s) => {
-                correct += s.correct;
-                trials += s.correct + s.incorrect;
-                if (!lastAt || s.updatedAt > lastAt) lastAt = s.updatedAt;
+            return sessions.summaryMap().get(studentId) || { count: 0, trials: 0, correct: 0, percent: 0, lastAt: null };
+        },
+        // One pass over every session, so listing N students costs O(sessions)
+        // rather than N scans.
+        summaryMap() {
+            const map = new Map();
+            cache.sessions.forEach((s) => {
+                if (!live(s)) return;
+                let entry = map.get(s.studentId);
+                if (!entry) {
+                    entry = { count: 0, trials: 0, correct: 0, percent: 0, lastAt: null };
+                    map.set(s.studentId, entry);
+                }
+                entry.count += 1;
+                entry.correct += s.correct;
+                entry.trials += s.correct + s.incorrect;
+                if (!entry.lastAt || s.updatedAt > entry.lastAt) entry.lastAt = s.updatedAt;
             });
-            const percent = trials === 0 ? 0 : Math.ceil((correct / trials) * 100);
-            return { count: list.length, trials, correct, percent, lastAt };
+            map.forEach((entry) => {
+                entry.percent = entry.trials === 0 ? 0 : Math.ceil((entry.correct / entry.trials) * 100);
+            });
+            return map;
         },
     };
 
@@ -292,17 +410,20 @@
         },
     };
 
+    // Setting a session with a different userId swaps the workspace; the
+    // promise resolves once the new one is loaded.
     const session = {
         get() {
             return cache.session;
         },
-        set(value) {
+        async set(value) {
             cache.session = value || null;
             persist('session');
+            await switchWorkspace(cache.session && cache.session.userId ? cache.session.userId : null);
             window.dispatchEvent(new CustomEvent('speech:session'));
         },
         clear() {
-            session.set(null);
+            return session.set(null);
         },
     };
 
@@ -316,12 +437,32 @@
         },
     };
 
-    function changedSince(since) {
-        const after = (r) => !since || (r.updatedAt || '') > since;
-        return {
-            students: cache.students.filter(after),
-            sessions: cache.sessions.filter(after),
+    // What sync still has to upload: every record marked dirty since its
+    // last successful push.
+    function pendingChanges() {
+        const pick = (kind, list) => {
+            const ids = cache.pending[kind];
+            return list.filter((r) => Object.prototype.hasOwnProperty.call(ids, r.id));
         };
+        return {
+            students: pick('students', cache.students),
+            sessions: pick('sessions', cache.sessions),
+        };
+    }
+
+    // Called after a push succeeds with the records as they were sent; a
+    // record edited again while the push was in flight stays pending.
+    function clearPending(sent) {
+        ['students', 'sessions'].forEach((kind) => {
+            (sent[kind] || []).forEach((record) => {
+                if (cache.pending[kind][record.id] === record.updatedAt) delete cache.pending[kind][record.id];
+            });
+        });
+        persist('pending');
+    }
+
+    function hasPending() {
+        return Object.keys(cache.pending.students).length + Object.keys(cache.pending.sessions).length > 0;
     }
 
     // Records arriving from another device via sync. Same last-write-wins
@@ -337,11 +478,47 @@
         return changed;
     }
 
-    function clearRoster() {
-        cache.students = [];
-        cache.sessions = [];
+    // The signed-out workspace's records, for offering to bring them into an
+    // account on sign-in.
+    async function localWorkspaceCounts() {
+        if (workspace === null) return { students: students.list().length };
+        return { students: asList(await read(workspaceKey('students', null))).filter(live).length };
+    }
+
+    // Moves the signed-out workspace into the current account workspace (an
+    // explicit choice on sign-in), then empties the signed-out one.
+    async function importLocalWorkspace() {
+        if (workspace === null) return 0;
+        const [studentsRaw, sessionsRaw, boardRaw] = await Promise.all(
+            ['students', 'sessions', 'board'].map((name) => read(workspaceKey(name, null))),
+        );
+        const localStudents = compact(asList(studentsRaw));
+        const localSessions = compact(asList(sessionsRaw));
+        const changed = mergeRecords(cache.students, localStudents) + mergeRecords(cache.sessions, localSessions);
+        localStudents.forEach((r) => markDirty('students', r));
+        localSessions.forEach((r) => markDirty('sessions', r));
+        if (!cache.board && boardRaw) cache.board = parse(boardRaw, null);
         persist('students');
         persist('sessions');
+        persist('board');
+        await Promise.all(['students', 'sessions', 'board', 'sync', 'pending'].map((name) => remove(workspaceKey(name, null))));
+        window.dispatchEvent(new CustomEvent('speech:changed'));
+        return changed;
+    }
+
+    // Erases the current workspace from this device: roster, board, and sync
+    // bookkeeping, from memory and from every storage copy.
+    async function clearWorkspace() {
+        cache.students = [];
+        cache.sessions = [];
+        cache.board = null;
+        cache.sync = null;
+        cache.pending = { students: {}, sessions: {} };
+        ['students', 'sessions', 'board', 'sync', 'pending'].forEach((name) => {
+            clearTimeout(saveTimers[name]);
+            saveTimers[name] = null;
+        });
+        await Promise.all(['students', 'sessions', 'board', 'sync', 'pending'].map((name) => remove(keyFor(name))));
         window.dispatchEvent(new CustomEvent('speech:changed'));
     }
 
@@ -350,15 +527,18 @@
             app: 'speech-counter',
             version: 1,
             exportedAt: now(),
-            students: cache.students,
-            sessions: cache.sessions,
+            students: cache.students.filter(live),
+            sessions: cache.sessions.filter(live),
         }, null, 2);
     }
 
     const CSV_COLUMNS = ['Student', 'Target', 'Correct', 'Incorrect', 'Total', 'Percent', 'Date', 'Updated', 'Session ID', 'Student ID'];
 
+    // Quote as CSV needs, and defuse text a spreadsheet would run as a
+    // formula (a name typed as "=1+1" stays visible text, not a calculation).
     function csvCell(value) {
-        const text = value === null || value === undefined ? '' : String(value);
+        let text = value === null || value === undefined ? '' : String(value);
+        if (/^[\s\x00-\x1f]*[=+\-@]/.test(text)) text = "'" + text;
         return /[",\r\n]/.test(text) ? '"' + text.replace(/"/g, '""') + '"' : text;
     }
 
@@ -386,15 +566,17 @@
     // Merges by id, keeping whichever copy was updated most recently, so an
     // older copy from another device never clobbers newer work on this one.
     function mergeRecords(into, incoming) {
+        const index = new Map(into.map((r, i) => [r.id, i]));
         let changed = 0;
         incoming.forEach((record) => {
             if (!record || typeof record.id !== 'string') return;
-            const index = into.findIndex((r) => r.id === record.id);
-            if (index === -1) {
+            const at = index.get(record.id);
+            if (at === undefined) {
+                index.set(record.id, into.length);
                 into.push(record);
                 changed += 1;
-            } else if ((record.updatedAt || '') > (into[index].updatedAt || '')) {
-                into[index] = record;
+            } else if ((record.updatedAt || '') > (into[at].updatedAt || '')) {
+                into[at] = record;
                 changed += 1;
             }
         });
@@ -415,11 +597,17 @@
         session,
         syncState,
         onPersist,
-        changedSince,
+        pendingChanges,
+        clearPending,
+        hasPending,
         applyRemote,
-        clearRoster,
+        localWorkspaceCounts,
+        importLocalWorkspace,
+        clearWorkspace,
         mergeRecords,
         exportJSON,
         exportCSV,
+        storageFailed: () => storageFailed,
+        workspace: () => workspace,
     };
 })();

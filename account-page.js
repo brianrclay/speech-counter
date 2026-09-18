@@ -133,6 +133,7 @@
             + 'It cannot be undone. A subscription is cancelled separately through Manage subscription.';
         if (!confirm(message)) return;
         deleteBtn.disabled = true;
+        window.SpeechSync.stop();
         try {
             await account.call('/api/account-delete', {}, session.token);
             await account.signOut({ removeLocal: true });
@@ -154,6 +155,21 @@
             alert(err.message || "Couldn't restore purchases right now.");
         } finally {
             restoreBtn.disabled = false;
+        }
+    });
+
+    const analyticsToggle = document.getElementById('analytics-toggle');
+    try {
+        analyticsToggle.checked = localStorage.getItem('speech-counter:analytics') !== 'off';
+    } catch (err) {
+        analyticsToggle.checked = true;
+    }
+    analyticsToggle.addEventListener('change', () => {
+        try {
+            if (analyticsToggle.checked) localStorage.removeItem('speech-counter:analytics');
+            else localStorage.setItem('speech-counter:analytics', 'off');
+        } catch (err) {
+            // Storage unavailable; the default (on) applies.
         }
     });
 

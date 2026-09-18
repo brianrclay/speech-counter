@@ -12,7 +12,9 @@ export default async (request, context) => {
 
     const user = Netlify.env.get('STAGING_USER');
     const password = Netlify.env.get('STAGING_PASSWORD');
-    if (!user || !password) return;
+    if (!user || !password) {
+        return new Response('Staging credentials are not configured', { status: 503, headers: { 'Cache-Control': 'no-store' } });
+    }
 
     const header = request.headers.get('authorization') || '';
     const [scheme, encoded] = header.split(' ');

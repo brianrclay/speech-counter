@@ -332,9 +332,10 @@
 
         function matches(query) {
             const key = store.nameKey(query);
+            const summaries = store.sessions.summaryMap();
             return store.students.list()
-                .map((student) => ({ student, lastAt: store.sessions.summary(student.id).lastAt || student.updatedAt }))
-                .filter(({ student }) => !key || student.nameKey.includes(key))
+                .filter((student) => !key || student.nameKey.includes(key))
+                .map((student) => ({ student, lastAt: (summaries.get(student.id) || {}).lastAt || student.updatedAt }))
                 .sort((a, b) => (a.lastAt > b.lastAt ? -1 : a.lastAt < b.lastAt ? 1 : a.student.name.localeCompare(b.student.name)))
                 .map(({ student }) => student);
         }

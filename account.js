@@ -23,13 +23,14 @@
         return '';
     }
 
-    async function call(path, body, token) {
+    async function call(path, body, token, { signal } = {}) {
         const headers = { 'Content-Type': 'application/json' };
         if (token) headers.Authorization = 'Bearer ' + token;
         let response;
         try {
-            response = await fetch(apiBase() + path, { method: 'POST', headers, body: JSON.stringify(body || {}) });
+            response = await fetch(apiBase() + path, { method: 'POST', headers, body: JSON.stringify(body || {}), signal });
         } catch (err) {
+            if (err && err.name === 'AbortError') throw err;
             const offline = new Error("Couldn't reach Speech Count. Check your connection and try again.");
             offline.offline = true;
             throw offline;
@@ -47,11 +48,21 @@
         return call('/api/auth-code', { email });
     }
 
+    // Signing in swaps to that account's workspace. Anything saved while
+    // signed out stays in the device workspace unless the user chooses to
+    // bring it along, so a shared device never uploads one person's roster
+    // into another's account.
     async function verifyCode(email, code) {
         const data = await call('/api/auth-verify', { email, code });
         const session = { userId: data.userId, email: data.email, token: data.token, signedInAt: new Date().toISOString() };
-        store.session.set(session);
-        store.syncState.set(null);
+        const local = await store.localWorkspaceCounts();
+        await store.session.set(session);
+        if (local.students > 0) {
+            const count = local.students + (local.students === 1 ? ' student' : ' students');
+            if (confirm('You have ' + count + ' saved on this device. Add them to ' + session.email + '?\n\nThey will sync to your other devices. Choose Cancel to leave them on this device only.')) {
+                await store.importLocalWorkspace();
+            }
+        }
         try {
             await billing.logIn(session.userId);
         } catch (err) {
@@ -62,11 +73,13 @@
         return session;
     }
 
+    // Sync stops before anything else so a response can't land in the
+    // wrong workspace; the account's local copy is erased before the switch
+    // back to the device workspace when asked.
     async function signOut({ removeLocal } = {}) {
         if (window.SpeechSync) window.SpeechSync.stop();
-        store.session.clear();
-        store.syncState.set(null);
-        if (removeLocal) store.clearRoster();
+        if (removeLocal) await store.clearWorkspace();
+        await store.session.clear();
         try {
             await billing.logOut();
         } catch (err) {

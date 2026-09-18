@@ -6,11 +6,14 @@
     <!-- Google tag (gtag.js) - skipped on Netlify branch/preview deploys and
          the local dev server so staging traffic stays out of production stats. -->
     <script>
-        if (!location.hostname.endsWith('.netlify.app') && location.protocol !== 'http:') {
+        // Off on staging and local, and off when the user has turned analytics
+        // off on the Account page. No ads features, no IP-based location.
+        if (!location.hostname.endsWith('.netlify.app') && location.protocol !== 'http:'
+            && (function () { try { return localStorage.getItem('speech-counter:analytics') !== 'off'; } catch (e) { return true; } })()) {
             window.dataLayer = window.dataLayer || [];
             window.gtag = function () { dataLayer.push(arguments); };
             gtag('js', new Date());
-            gtag('config', 'G-QPE28RCTSV');
+            gtag('config', 'G-QPE28RCTSV', { anonymize_ip: true, allow_google_signals: false, allow_ad_personalization_signals: false });
             var gaScript = document.createElement('script');
             gaScript.async = true;
             gaScript.src = 'https://www.googletagmanager.com/gtag/js?id=G-QPE28RCTSV';
@@ -97,6 +100,19 @@
                 <a id="manage-subscription" class="account-link" href="#" target="_blank" rel="noopener" hidden><span id="manage-subscription-label">Manage subscription</span><span class="sr-only"> (opens in a new tab)</span></a>
                 <a id="plan-cta" class="account-link" href="./students.html" hidden>Get Speech Count Pro</a>
                 <button type="button" id="restore-purchases" class="link-btn account-link" hidden>Restore purchases</button>
+            </div>
+        </section>
+
+        <section class="account-section" aria-labelledby="privacy-title">
+            <h2 id="privacy-title" class="section-title">Privacy</h2>
+            <div class="account-card">
+                <label class="account-row account-toggle">
+                    <span class="account-text">
+                        <strong>Share anonymous usage data</strong>
+                        <span>Helps us see which features get used. Never includes student names or results. Takes effect on the next page load.</span>
+                    </span>
+                    <input type="checkbox" id="analytics-toggle" class="switch">
+                </label>
             </div>
         </section>
 
