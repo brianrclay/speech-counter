@@ -1,4 +1,4 @@
-import { endpoint, json, fail, env, normalizeEmail, currentCode, isReviewer } from './lib/common.mjs';
+import { endpoint, json, fail, env, normalizeEmail, issueCode, isReviewer } from './lib/common.mjs';
 
 // Each request sends an email, so keep one client from turning this into a
 // spam cannon or running up the Resend bill.
@@ -30,6 +30,6 @@ async function sendEmail(email, code) {
 export default endpoint(async (req) => {
     const body = await req.json().catch(() => ({}));
     const email = normalizeEmail(body.email);
-    if (!isReviewer(email)) await sendEmail(email, currentCode(email));
+    if (!isReviewer(email)) await sendEmail(email, await issueCode(email));
     return json(req, 200, { ok: true });
 });

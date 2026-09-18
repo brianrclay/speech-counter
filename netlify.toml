@@ -4,6 +4,15 @@
 [functions]
   directory = "netlify/functions"
 
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains"
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "DENY"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+
 # Branch deploys and PR deploy previews are gated behind Basic auth; see
 # netlify/edge-functions/staging-auth.js. Production is unaffected. The API
 # is excluded so native test builds can talk to a branch deploy.

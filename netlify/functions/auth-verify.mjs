@@ -1,4 +1,4 @@
-import { endpoint, json, fail, normalizeEmail, codeMatches, isReviewer, userIdFor, issueToken } from './lib/common.mjs';
+import { endpoint, json, fail, normalizeEmail, consumeCode, isReviewer, userIdFor, issueToken } from './lib/common.mjs';
 
 // Codes are six digits and valid for two ten-minute windows; without a cap
 // on attempts they could be brute-forced, and a guessed code opens the
@@ -11,7 +11,7 @@ export const config = {
 export default endpoint(async (req) => {
     const body = await req.json().catch(() => ({}));
     const email = normalizeEmail(body.email);
-    if (!isReviewer(email, body.code) && !codeMatches(email, body.code)) {
+    if (!isReviewer(email, body.code) && !(await consumeCode(email, body.code))) {
         throw fail(401, 'That code is wrong or has expired');
     }
     const userId = userIdFor(email);

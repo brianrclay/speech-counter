@@ -1,15 +1,14 @@
 import { getStore } from '@netlify/blobs';
-import { endpoint, json, fail, verifyToken, mergeRecords } from './lib/common.mjs';
+import { endpoint, json, fail, env, verifyToken, mergeRecords } from './lib/common.mjs';
 
 export const config = { path: '/api/sync' };
 
 const ENTITLEMENT = 'roster';
 
 // Storage is only for paying users; the client gate alone would let anyone
-// with devtools fill it.
+// with devtools fill it. A missing key fails closed rather than open.
 async function assertPremium(userId) {
-    const key = process.env.RC_SECRET_KEY;
-    if (!key) return;
+    const key = env('RC_SECRET_KEY');
     const response = await fetch(`https://api.revenuecat.com/v1/subscribers/${encodeURIComponent(userId)}`, {
         headers: { Authorization: `Bearer ${key}`, Accept: 'application/json' },
     });

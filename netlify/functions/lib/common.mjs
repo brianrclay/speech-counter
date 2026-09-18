@@ -1,6 +1,8 @@
-import { createHmac, createHash, timingSafeEqual } from 'node:crypto';
+import { createHmac, createHash, randomInt, timingSafeEqual } from 'node:crypto';
+import { getStore } from '@netlify/blobs';
 
-const CODE_WINDOW_MS = 10 * 60 * 1000;
+const CODE_TTL_MS = 10 * 60 * 1000;
+const CODE_MAX_ATTEMPTS = 5;
 const TOKEN_TTL_MS = 90 * 24 * 60 * 60 * 1000;
 
 const ALLOWED_ORIGINS = [
@@ -24,7 +26,8 @@ function originAllowed(origin) {
     if (!origin) return false;
     if (ALLOWED_ORIGINS.includes(origin)) return true;
     if (/^http:\/\/localhost(:\d+)?$/.test(origin)) return true;
-    return /^https:\/\/[a-z0-9-]+(--speech-counter)?\.netlify\.app$/.test(origin);
+    // This site's own branch deploys and deploy previews, nothing else on netlify.app.
+    return /^https:\/\/(?:[a-z0-9-]+--)?speech-counter\.netlify\.app$/.test(origin);
 }
 
 export function corsHeaders(req) {
@@ -42,7 +45,7 @@ export function corsHeaders(req) {
 export function json(req, status, body) {
     return new Response(JSON.stringify(body), {
         status,
-        headers: { 'Content-Type': 'application/json', ...corsHeaders(req) },
+        headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', ...corsHeaders(req) },
     });
 }
 
@@ -91,21 +94,53 @@ export function userIdFor(email) {
     return 'u_' + createHash('sha256').update(env('AUTH_SECRET') + '|' + email).digest('hex').slice(0, 32);
 }
 
-function codeFor(email, window) {
-    const digest = hmac(env('AUTH_SECRET'), `code|${email}|${window}`);
-    return String(digest.readUInt32BE(0) % 1000000).padStart(6, '0');
+// Sign-in codes are random, single-use, and expire after ten minutes. Only
+// an HMAC of the code is stored, under a hash of the email, so the blob
+// store holds nothing usable on its own. Requesting a new code replaces the
+// old one, and five wrong guesses burn it.
+function codeStore() {
+    return getStore({ name: 'auth-codes', consistency: 'strong' });
 }
 
-export function currentCode(email) {
-    return codeFor(email, Math.floor(Date.now() / CODE_WINDOW_MS));
+function codeKey(email) {
+    return createHash('sha256').update(email).digest('hex');
 }
 
-// Accepts the current and previous window so a code sent right before the
-// boundary still works.
-export function codeMatches(email, code) {
-    const window = Math.floor(Date.now() / CODE_WINDOW_MS);
+function codeDigest(email, code) {
+    return b64url(hmac(env('AUTH_SECRET'), `code|${email}|${code}`));
+}
+
+export async function issueCode(email) {
+    const code = String(randomInt(0, 1000000)).padStart(6, '0');
+    await codeStore().setJSON(codeKey(email), {
+        digest: codeDigest(email, code),
+        expiresAt: Date.now() + CODE_TTL_MS,
+        attempts: 0,
+    });
+    return code;
+}
+
+export async function consumeCode(email, code) {
+    const store = codeStore();
+    const key = codeKey(email);
+    const record = await store.get(key, { type: 'json' });
+    if (!record) return false;
+    if (record.expiresAt < Date.now()) {
+        await store.delete(key);
+        return false;
+    }
     const given = String(code || '').replace(/\D/g, '');
-    return [window, window - 1].some((w) => safeEqual(codeFor(email, w), given));
+    if (given.length === 6 && safeEqual(record.digest, codeDigest(email, given))) {
+        await store.delete(key);
+        return true;
+    }
+    record.attempts += 1;
+    if (record.attempts >= CODE_MAX_ATTEMPTS) {
+        await store.delete(key);
+        throw fail(429, 'Too many wrong codes. Request a new one');
+    }
+    await store.setJSON(key, record);
+    return false;
 }
 
 export function isReviewer(email, code) {
