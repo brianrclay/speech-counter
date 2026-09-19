@@ -134,12 +134,21 @@
         }
     });
 
+    // A subscription that will renew has to be cancelled first (only the
+    // store can cancel it); the server enforces the same rule.
     deleteBtn.addEventListener('click', async () => {
         const session = account.session();
         if (!session) return;
+        const entitlement = store.entitlements.get() || {};
+        if (store.entitlements.isPremium() && entitlement.expiresAt && entitlement.willRenew) {
+            alert('Your subscription is still set to renew. Cancel it under Manage subscription first, then delete your account. '
+                + "You'll keep Speech Count Pro until the end of the period you've paid for.");
+            if (!manageSubscription.hidden) manageSubscription.focus();
+            return;
+        }
         const message = 'Delete the Speech Count account for ' + session.email + '?\n\n'
             + 'This removes your synced roster from Speech Count and from this device, and logs you out. '
-            + 'It cannot be undone. A subscription is cancelled separately through Manage subscription.';
+            + 'It cannot be undone.';
         if (!confirm(message)) return;
         deleteBtn.disabled = true;
         window.SpeechSync.stop();
@@ -150,6 +159,7 @@
             alert('Your account has been deleted.');
         } catch (err) {
             alert(err.message || "Couldn't delete your account right now.");
+            if (err.status === 409) billing.refresh().catch(() => {});
         } finally {
             deleteBtn.disabled = false;
         }

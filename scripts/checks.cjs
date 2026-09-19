@@ -48,11 +48,12 @@ function getStore({ name }) {
 }
 
 const testProcess = { env: { AUTH_SECRET: 'test-only-secret', REVIEW_EMAIL: 'reviewer@example.test', REVIEW_CODE: '654321', RC_SECRET_KEY: 'test-only' } };
-const premiumFetch = async () => ({ ok: true, json: async () => ({ subscriber: { entitlements: { roster: { expires_date: null } } } }) });
+let renewing = false;
+const premiumFetch = async () => ({ ok: true, status: 200, json: async () => ({ subscriber: { entitlements: { roster: { expires_date: null } }, subscriptions: renewing ? { monthly: { expires_date: new Date(Date.now() + 86400000).toISOString(), unsubscribe_detected_at: null } } : {} } }) });
 
 function loadCommon() {
     const src = source('netlify/functions/lib/common.mjs').replace(/^import .*;\n/gm, '').replace(/export /g, '');
-    const names = ['endpoint', 'json', 'fail', 'env', 'fetchWithTimeout', 'stores', 'normalizeEmail', 'resolveAccount', 'saveAccount', 'issueCode', 'consumeCode', 'isReviewerEmail', 'reviewerCodeMatches', 'issueToken', 'verifyToken', 'authenticate', 'assertPremium', 'mergeRecords'];
+    const names = ['endpoint', 'json', 'fail', 'env', 'fetchWithTimeout', 'stores', 'normalizeEmail', 'resolveAccount', 'saveAccount', 'issueCode', 'consumeCode', 'isReviewerEmail', 'reviewerCodeMatches', 'issueToken', 'verifyToken', 'authenticate', 'assertPremium', 'hasRenewingSubscription', 'mergeRecords'];
     const factory = new Function('createHmac', 'createHash', 'randomBytes', 'randomInt', 'timingSafeEqual', 'getStore', 'process', 'fetch', src + '\nreturn {' + names.join(',') + '};');
     return factory(crypto.createHmac, crypto.createHash, crypto.randomBytes, crypto.randomInt, crypto.timingSafeEqual, getStore, testProcess, premiumFetch);
 }
@@ -137,6 +138,11 @@ function ok(msg) { passed += 1; console.log('PASS', msg); }
     // 4. deletion revokes tokens; re-sign-in starts empty
     const token = common.issueToken(acc.userId, 'owner@example.test');
     assert.equal((await sync(req({ students: [student('s1', 'One')] }, token), ctx)).status, 200);
+    renewing = true;
+    assert.equal((await del(req({}, token), ctx)).status, 409);
+    assert.equal((await sync(req({}, token), ctx)).status, 200);
+    ok('deletion is refused while a subscription will renew, and the account is untouched');
+    renewing = false;
     assert.equal((await del(req({}, token), ctx)).status, 200);
     assert.equal((await sync(req({ students: [student('s1', 'One')] }, token), ctx)).status, 401);
     assert.equal(blobs.get('rosters|' + acc.userId), undefined);

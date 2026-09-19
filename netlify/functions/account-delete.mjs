@@ -1,4 +1,4 @@
-import { endpoint, json, authenticate, saveAccount, stores } from './lib/common.mjs';
+import { endpoint, json, fail, authenticate, saveAccount, hasRenewingSubscription, stores } from './lib/common.mjs';
 
 export const config = { path: '/api/account-delete' };
 
@@ -9,6 +9,9 @@ export const config = { path: '/api/account-delete' };
 export default endpoint(async (req, context) => {
     const s = stores(context);
     const auth = await authenticate(req, s);
+    if (await hasRenewingSubscription(auth.userId)) {
+        throw fail(409, 'Cancel your subscription before deleting your account');
+    }
     const now = Date.now();
     auth.account.tokensValidAfter = now;
     auth.account.deletedAt = new Date(now).toISOString();

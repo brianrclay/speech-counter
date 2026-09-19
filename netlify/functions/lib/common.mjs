@@ -283,6 +283,31 @@ export async function assertPremium(auth, s) {
     if (!active) throw fail(402, 'Sync needs an active Speech Count Pro purchase');
 }
 
+// True when the customer has a subscription that is still set to renew. A
+// cancelled-but-not-yet-expired subscription doesn't count; neither does a
+// lifetime purchase.
+export async function hasRenewingSubscription(userId) {
+    const key = env('RC_SECRET_KEY');
+    let response;
+    try {
+        response = await fetchWithTimeout(`https://api.revenuecat.com/v1/subscribers/${encodeURIComponent(userId)}`, {
+            headers: { Authorization: `Bearer ${key}`, Accept: 'application/json' },
+        });
+    } catch (err) {
+        throw fail(502, 'Could not check your subscription right now');
+    }
+    if (response.status === 404) return false;
+    if (!response.ok) {
+        console.error('RevenueCat error', response.status);
+        throw fail(502, 'Could not check your subscription right now');
+    }
+    const data = await response.json();
+    const subscriptions = (data.subscriber && data.subscriber.subscriptions) || {};
+    const now = Date.now();
+    return Object.values(subscriptions).some((sub) => sub && sub.expires_date
+        && new Date(sub.expires_date).getTime() > now && !sub.unsubscribe_detected_at);
+}
+
 // Mirrors mergeRecords in store.js: keep whichever copy of a record was
 // updated most recently. Keep the two in step.
 export function mergeRecords(into, incoming) {
