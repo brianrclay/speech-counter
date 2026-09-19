@@ -121,3 +121,7 @@ html:has(#paywall:not([hidden])) {
 @media(prefers-reduced-motion: reduce) {
   .pro-purchase-dock { transition: none; }
 }
+
+.students-page:has(#paywall:not([hidden])) .page {
+  padding-top: calc(var(--page-gutter) + env(safe-area-inset-top));
+}

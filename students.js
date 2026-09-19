@@ -386,7 +386,7 @@
         purchaseDone.hidden = !celebrating;
         tabBar.hidden = Boolean(celebrating);
         document.body.classList.toggle('celebrating', Boolean(celebrating));
-        appHeader.hidden = Boolean(celebrating);
+        appHeader.hidden = !premium || Boolean(celebrating);
         paywall.hidden = premium || Boolean(celebrating);
         appActions.hidden = !premium;
         if (celebrating) {
@@ -405,7 +405,7 @@
             currentId = null;
             detailView.hidden = true;
             listView.hidden = true;
-            appHeader.hidden = false;
+            appHeader.hidden = true;
             document.title = 'Students - Speech Count';
             renderPaywall();
             window.scrollTo(0, 0);
