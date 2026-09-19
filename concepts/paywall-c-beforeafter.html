@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Concept C - Before and after</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="color-scheme" content="light dark">
+    <link href="../css/reset.css" rel="stylesheet">
+    <link href="../css/style.css" rel="stylesheet">
+    <link href="./concept.css" rel="stylesheet">
+    <style>
+        /* ---- Concept C: prove the one claim that matters in a single
+               picture - the tap you already make becomes a record - then
+               keep the rest of the features small. ---- */
+
+        .ba {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            box-shadow: var(--shadow-md);
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+
+        .ba-step + .ba-step {
+            margin-top: 6px;
+        }
+
+        .ba-label {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+        }
+
+        .ba-label.is-after {
+            color: var(--chip-fg);
+        }
+
+        .ba-label .ba-pip {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+
+        .ba-step img {
+            display: block;
+            width: 100%;
+            height: auto;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+
+        /* The "after" shot is the payoff, so it is the one that is cropped
+           tall and given the accent edge. */
+        .ba-step.is-after .ba-frame {
+            max-height: 228px;
+            overflow: hidden;
+            border-radius: 12px;
+            border: 2px solid var(--accent);
+        }
+
+        .ba-step.is-after img {
+            border: none;
+            border-radius: 0;
+        }
+
+        /* The connector between the two states. */
+        .ba-join {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 14px 0 10px;
+            color: var(--chip-fg);
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .ba-join::before,
+        .ba-join::after {
+            content: "";
+            flex: 1;
+            height: 1px;
+            background: var(--border);
+        }
+
+        .ba-join svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        .ba-join span {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* Small feature grid: once the hero has made the argument, the rest
+           are reminders, not pitches. */
+        .mini-grid {
+            list-style: none;
+            margin: 0 0 22px;
+            padding: 0;
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        .mini {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .mini-media {
+            height: 96px;
+            overflow: hidden;
+            background: var(--bg);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .mini-media img {
+            display: block;
+            width: 100%;
+            height: auto;
+        }
+
+        .mini-text {
+            padding: 11px 12px 13px;
+        }
+
+        .mini-text strong {
+            display: block;
+            font-size: 14px;
+            line-height: 1.3;
+            margin-bottom: 3px;
+        }
+
+        .mini-text span {
+            display: block;
+            font-size: 12.5px;
+            line-height: 1.4;
+            color: var(--text-muted);
+        }
+
+        /* On a narrow phone two columns get cramped; one column reads better. */
+        @media (max-width: 359px) {
+            .mini-grid {
+                grid-template-columns: minmax(0, 1fr);
+            }
+        }
+    </style>
+</head>
+
+<body class="students-page">
+    <header class="app-header">
+        <div class="app-header-inner">
+            <h1 class="app-title">Students</h1>
+        </div>
+    </header>
+
+    <main class="page">
+        <section class="paywall">
+            <div class="paywall-hero">
+                <h2 class="paywall-title">The tap you already make, kept</h2>
+                <p class="paywall-lead">
+                    Speech Count Pro files every session under the student, the moment you tally it.
+                </p>
+            </div>
+
+            <div class="ba">
+                <div class="ba-step">
+                    <p class="ba-label"><span class="ba-pip" aria-hidden="true"></span>What you do now</p>
+                    <picture>
+                        <source srcset="./shots/f-autosave-dark.png" media="(prefers-color-scheme: dark)">
+                        <img src="./shots/f-autosave.png" alt="A board row for Ava Mitchell on /s/ initial, showing 17 correct and 3 incorrect.">
+                    </picture>
+                </div>
+
+                <p class="ba-join">
+                    <span>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <line x1="12" y1="5" x2="12" y2="19" />
+                            <polyline points="19 12 12 19 5 12" />
+                        </svg>
+                        saved automatically
+                    </span>
+                </p>
+
+                <div class="ba-step is-after">
+                    <p class="ba-label is-after"><span class="ba-pip" aria-hidden="true"></span>What Pro keeps</p>
+                    <div class="ba-frame">
+                        <picture>
+                            <source srcset="./shots/f-progress-dark.png" media="(prefers-color-scheme: dark)">
+                            <img src="./shots/f-progress.png" alt="Ava Mitchell's record: 6 sessions, 120 trials, 78 percent correct, with dated sessions below.">
+                        </picture>
+                    </div>
+                </div>
+            </div>
+
+            <h3 class="paywall-heading">Plans</h3>
+            <div class="plans" role="radiogroup" aria-label="Choose a plan">
+                <button type="button" class="plan" role="radio" aria-checked="true">
+                    <span class="plan-radio" aria-hidden="true"></span>
+                    <span class="plan-body">
+                        <span class="plan-row">
+                            <span class="plan-name">Lifetime</span>
+                            <span class="plan-price">$19.99</span>
+                        </span>
+                        <span class="plan-note"><span>One-time purchase</span><span aria-hidden="true">&bull;</span><span>Includes every feature</span></span>
+                    </span>
+                </button>
+                <button type="button" class="plan" role="radio" aria-checked="false">
+                    <span class="plan-radio" aria-hidden="true"></span>
+                    <span class="plan-body">
+                        <span class="plan-row">
+                            <span class="plan-name">Monthly</span>
+                            <span class="plan-price">$2.99/mo</span>
+                        </span>
+                        <span class="plan-note"><span>Renews monthly</span><span aria-hidden="true">&bull;</span><span>Cancel anytime</span></span>
+                    </span>
+                </button>
+            </div>
+            <button type="button" class="btn-primary">
+                <span class="buy-label">Purchase lifetime</span>
+                <span>$19.99</span>
+            </button>
+
+            <h3 class="paywall-heading">Also included</h3>
+            <ul class="mini-grid">
+                <li class="mini">
+                    <div class="mini-media">
+                        <picture>
+                            <source srcset="./shots/f-roster-dark.png" media="(prefers-color-scheme: dark)">
+                            <img src="./shots/f-roster.png" alt="A student list showing six students with their session counts and percent correct.">
+                        </picture>
+                    </div>
+                    <div class="mini-text">
+                        <strong>Your whole roster</strong>
+                        <span>Search and sort every student you see.</span>
+                    </div>
+                </li>
+                <li class="mini">
+                    <div class="mini-media">
+                        <picture>
+                            <source srcset="./shots/f-names-dark.png" media="(prefers-color-scheme: dark)">
+                            <img src="./shots/f-names.png" alt="Typing M in the name field suggests Ava Mitchell, Liam Okafor and Mia Fletcher.">
+                        </picture>
+                    </div>
+                    <div class="mini-text">
+                        <strong>Names autofill</strong>
+                        <span>The roster comes to the board.</span>
+                    </div>
+                </li>
+                <li class="mini">
+                    <div class="mini-media">
+                        <picture>
+                            <source srcset="./shots/f-export-dark.png" media="(prefers-color-scheme: dark)">
+                            <img src="./shots/f-export.png" alt="A spreadsheet of exported sessions with student, target, correct, incorrect, total and percent columns.">
+                        </picture>
+                    </div>
+                    <div class="mini-text">
+                        <strong>CSV export</strong>
+                        <span>For reports and IEP meetings.</span>
+                    </div>
+                </li>
+                <li class="mini">
+                    <div class="mini-media">
+                        <picture>
+                            <source srcset="./shots/f-sync-dark.png" media="(prefers-color-scheme: dark)">
+                            <img src="./shots/f-sync.png" alt="The account details card showing a signed-in email address and Synced just now.">
+                        </picture>
+                    </div>
+                    <div class="mini-text">
+                        <strong>Device sync</strong>
+                        <span>Phone, tablet and laptop.</span>
+                    </div>
+                </li>
+            </ul>
+
+            <p class="paywall-links">
+                <button type="button" class="link-btn">Already purchased? Sign in</button>
+                <button type="button" class="link-btn">Have a code?</button>
+            </p>
+            <p class="paywall-fine">
+                Monthly renews automatically until cancelled in your store account. Lifetime is a one-time
+                purchase for as long as Speech Count is offered. <a href="../terms.html">Terms of Use</a> &middot;
+                <a href="../privacy.html">Privacy Policy</a>
+            </p>
+        </section>
+    </main>
+
+    <nav class="tab-bar" aria-label="Pages">
+        <a href="../index.html" class="tab"><span>Board</span></a>
+        <a href="#" class="tab" aria-current="page"><span>Students</span></a>
+        <a href="../account.html" class="tab"><span>Account</span></a>
+    </nav>
+</body>
+
+</html>

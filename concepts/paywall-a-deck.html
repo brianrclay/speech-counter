@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Concept A - Swipe deck</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="color-scheme" content="light dark">
+    <link href="../css/reset.css" rel="stylesheet">
+    <link href="../css/style.css" rel="stylesheet">
+    <link href="./concept.css" rel="stylesheet">
+    <style>
+        /* ---- Concept A: a swipeable deck of the real screens ---- */
+        .deck {
+            display: flex;
+            gap: 12px;
+            overflow-x: auto;
+            scroll-snap-type: x mandatory;
+            scroll-padding-left: var(--page-gutter);
+            margin: 0 calc(var(--page-gutter) * -1) 12px;
+            padding: 4px var(--page-gutter) 12px;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+        }
+
+        .deck::-webkit-scrollbar { display: none; }
+
+        .deck-card {
+            scroll-snap-align: start;
+            flex: 0 0 78%;
+            max-width: 280px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            box-shadow: var(--shadow-md);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .deck-media {
+            background: var(--bg);
+            border-bottom: 1px solid var(--border);
+            padding: 14px 14px 0;
+            /* Crop to the top of the shot so the interesting part leads. */
+            height: 178px;
+            overflow: hidden;
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+        }
+
+        .deck-media img {
+            width: 100%;
+            border-radius: 10px 10px 0 0;
+            box-shadow: var(--shadow-sm);
+            display: block;
+        }
+
+        .deck-text {
+            padding: 14px 16px 18px;
+        }
+
+        .deck-step {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: var(--chip-bg);
+            color: var(--chip-fg);
+            font-size: 12px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .deck-text strong {
+            display: block;
+            font-size: 16px;
+            margin-bottom: 4px;
+        }
+
+        .deck-text span {
+            display: block;
+            color: var(--text-muted);
+            font-size: 14px;
+            line-height: 1.45;
+        }
+
+        .deck-hint {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            color: var(--text-muted);
+            font-size: 13px;
+            margin: 0 0 20px;
+        }
+
+        .deck-dots {
+            display: flex;
+            gap: 6px;
+        }
+
+        .deck-dots i {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--border);
+        }
+
+        .deck-dots i:first-child { background: var(--accent); }
+    </style>
+</head>
+
+<body class="students-page">
+    <header class="app-header">
+        <div class="app-header-inner">
+            <h1 class="app-title">Students</h1>
+        </div>
+    </header>
+
+    <main class="page">
+        <section class="paywall">
+            <div class="paywall-hero">
+                <h2 class="paywall-title">Keep every student's progress</h2>
+                <p class="paywall-lead">
+                    Speech Count Pro turns the board into a record. Tally the way you already do, and
+                    the session files itself under the right student.
+                </p>
+            </div>
+
+            <div class="deck" role="group" aria-label="What Pro adds">
+                <figure class="deck-card">
+                    <div class="deck-media">
+                        <picture>
+                            <source srcset="./shots/f-autosave-dark.png" media="(prefers-color-scheme: dark)">
+                            <img src="./shots/f-autosave.png" alt="A board row for Ava Mitchell on /s/ initial, showing 17 correct and 3 incorrect.">
+                        </picture>
+                    </div>
+                    <figcaption class="deck-text">
+                        <span class="deck-step" aria-hidden="true">1</span>
+                        <strong>Tally like always</strong>
+                        <span>Type a name, tap Correct or Incorrect. Nothing new to learn.</span>
+                    </figcaption>
+                </figure>
+
+                <figure class="deck-card">
+                    <div class="deck-media">
+                        <picture>
+                            <source srcset="./shots/f-roster-dark.png" media="(prefers-color-scheme: dark)">
+                            <img src="./shots/f-roster.png" alt="A student list showing six students with their session counts and percent correct.">
+                        </picture>
+                    </div>
+                    <figcaption class="deck-text">
+                        <span class="deck-step" aria-hidden="true">2</span>
+                        <strong>The session saves itself</strong>
+                        <span>Every tally lands in that student's history. No extra step, no retyping.</span>
+                    </figcaption>
+                </figure>
+
+                <figure class="deck-card">
+                    <div class="deck-media">
+                        <picture>
+                            <source srcset="./shots/f-progress-dark.png" media="(prefers-color-scheme: dark)">
+                            <img src="./shots/f-progress.png" alt="Ava Mitchell's record: 6 sessions, 120 trials, 78 percent correct, with dated sessions below.">
+                        </picture>
+                    </div>
+                    <figcaption class="deck-text">
+                        <span class="deck-step" aria-hidden="true">3</span>
+                        <strong>Progress at a glance</strong>
+                        <span>Percent correct over time, per student and per target.</span>
+                    </figcaption>
+                </figure>
+
+                <figure class="deck-card">
+                    <div class="deck-media">
+                        <picture>
+                            <source srcset="./shots/f-names-dark.png" media="(prefers-color-scheme: dark)">
+                            <img src="./shots/f-names.png" alt="Typing M in the name field suggests Ava Mitchell, Liam Okafor and Mia Fletcher.">
+                        </picture>
+                    </div>
+                    <figcaption class="deck-text">
+                        <span class="deck-step" aria-hidden="true">4</span>
+                        <strong>Names fill in as you type</strong>
+                        <span>Your roster shows up in the Name field on the board.</span>
+                    </figcaption>
+                </figure>
+
+                <figure class="deck-card">
+                    <div class="deck-media">
+                        <picture>
+                            <source srcset="./shots/f-export-dark.png" media="(prefers-color-scheme: dark)">
+                            <img src="./shots/f-export.png" alt="A spreadsheet of exported sessions with student, target, correct, incorrect, total and percent columns.">
+                        </picture>
+                    </div>
+                    <figcaption class="deck-text">
+                        <span class="deck-step" aria-hidden="true">5</span>
+                        <strong>Export to a spreadsheet</strong>
+                        <span>Download everything as CSV for reports and IEP meetings.</span>
+                    </figcaption>
+                </figure>
+            </div>
+
+            <p class="deck-hint">
+                <span class="deck-dots" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
+                Swipe to see all five
+            </p>
+
+            <h3 class="paywall-heading">Plans</h3>
+            <div class="plans" role="radiogroup" aria-label="Choose a plan">
+                <button type="button" class="plan" role="radio" aria-checked="true">
+                    <span class="plan-radio" aria-hidden="true"></span>
+                    <span class="plan-body">
+                        <span class="plan-row">
+                            <span class="plan-name">Lifetime</span>
+                            <span class="plan-price">$19.99</span>
+                        </span>
+                        <span class="plan-note"><span>One-time purchase</span><span aria-hidden="true">&bull;</span><span>Includes every feature</span></span>
+                    </span>
+                </button>
+                <button type="button" class="plan" role="radio" aria-checked="false">
+                    <span class="plan-radio" aria-hidden="true"></span>
+                    <span class="plan-body">
+                        <span class="plan-row">
+                            <span class="plan-name">Monthly</span>
+                            <span class="plan-price">$2.99/mo</span>
+                        </span>
+                        <span class="plan-note"><span>Renews monthly</span><span aria-hidden="true">&bull;</span><span>Cancel anytime</span></span>
+                    </span>
+                </button>
+            </div>
+            <button type="button" class="btn-primary">
+                <span class="buy-label">Purchase lifetime</span>
+                <span>$19.99</span>
+            </button>
+
+            <p class="paywall-links">
+                <button type="button" class="link-btn">Already purchased? Sign in</button>
+                <button type="button" class="link-btn">Have a code?</button>
+            </p>
+            <p class="paywall-fine">
+                Monthly renews automatically until cancelled in your store account. Lifetime is a one-time
+                purchase for as long as Speech Count is offered. <a href="../terms.html">Terms of Use</a> &middot;
+                <a href="../privacy.html">Privacy Policy</a>
+            </p>
+        </section>
+    </main>
+
+    <nav class="tab-bar" aria-label="Pages">
+        <a href="../index.html" class="tab"><span>Board</span></a>
+        <a href="#" class="tab" aria-current="page"><span>Students</span></a>
+        <a href="../account.html" class="tab"><span>Account</span></a>
+    </nav>
+</body>
+
+</html>

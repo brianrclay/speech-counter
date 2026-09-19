@@ -1,0 +1,33 @@
+/* Shared tweaks for the concept previews only.
+
+   These pages are static mockups of the pre-purchase Students screen. They
+   load the app's real stylesheet so the concepts are judged in the app's own
+   type, colour and spacing, and add only what each layout needs on top. The
+   tab bar here is inert, so it gets the same look without the live states. */
+
+.tab-bar .tab {
+    pointer-events: none;
+}
+
+.tab-bar .tab[aria-current="page"] {
+    background: var(--tab-active-bg);
+    color: var(--tab-active-fg);
+}
+
+/* Every concept shows cropped screenshots of the real app. They are flat
+   images, so a hairline keeps them from bleeding into the card behind them. */
+.shot-img {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation: none !important;
+        transition: none !important;
+    }
+}

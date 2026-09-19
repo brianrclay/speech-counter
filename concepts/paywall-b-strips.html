@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Concept B - Feature strips</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="color-scheme" content="light dark">
+    <link href="../css/reset.css" rel="stylesheet">
+    <link href="../css/style.css" rel="stylesheet">
+    <link href="./concept.css" rel="stylesheet">
+    <style>
+        /* ---- Concept B: one screenshot per claim, stacked, with a CTA
+               that follows you down the page. ---- */
+
+        .strip-list {
+            list-style: none;
+            margin: 0 0 24px;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .strip {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .strip-text {
+            padding: 16px 16px 14px;
+        }
+
+        .strip-text strong {
+            display: block;
+            font-size: 17px;
+            line-height: 1.3;
+            margin-bottom: 5px;
+        }
+
+        .strip-text span {
+            display: block;
+            color: var(--text-muted);
+            font-size: 14px;
+            line-height: 1.45;
+        }
+
+        /* The image sits in a tinted well so a light screenshot on a light
+           card still reads as a separate object. */
+        .strip-media {
+            background: var(--bg);
+            border-top: 1px solid var(--border);
+            padding: 14px;
+        }
+
+        .strip-media img {
+            display: block;
+            width: 100%;
+            height: auto;
+            border-radius: 10px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        /* Cropped tall shots lead with their top edge rather than squashing. */
+        .strip-media.is-tall {
+            max-height: 240px;
+            overflow: hidden;
+            padding-bottom: 0;
+        }
+
+        .strip-media.is-tall img {
+            border-radius: 10px 10px 0 0;
+        }
+
+        .strip-eyebrow {
+            display: inline-block;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            color: var(--chip-fg);
+            background: var(--chip-bg);
+            border-radius: var(--radius-pill);
+            padding: 3px 9px;
+            margin-bottom: 9px;
+        }
+
+        /* Sticky purchase bar: the price stays one tap away however far the
+           reader scrolls, so the page can afford to be long. */
+        .buy-bar {
+            position: sticky;
+            bottom: calc(var(--tab-bar-height) + var(--tab-bar-inset) + 8px);
+            z-index: 5;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-pill);
+            box-shadow: var(--shadow-md);
+            padding: 8px;
+            margin: 0 0 20px;
+        }
+
+        .buy-bar .btn-primary {
+            margin: 0;
+        }
+
+        .buy-bar-note {
+            text-align: center;
+            font-size: 12px;
+            color: var(--text-muted);
+            margin: 7px 0 2px;
+        }
+    </style>
+</head>
+
+<body class="students-page">
+    <header class="app-header">
+        <div class="app-header-inner">
+            <h1 class="app-title">Students</h1>
+        </div>
+    </header>
+
+    <main class="page">
+        <section class="paywall">
+            <div class="paywall-hero">
+                <h2 class="paywall-title">Keep every student's progress</h2>
+                <p class="paywall-lead">
+                    Speech Count Pro turns the board into a record. Here is exactly what changes.
+                </p>
+            </div>
+
+            <h3 class="paywall-heading">Plans</h3>
+            <div class="plans" role="radiogroup" aria-label="Choose a plan">
+                <button type="button" class="plan" role="radio" aria-checked="true">
+                    <span class="plan-radio" aria-hidden="true"></span>
+                    <span class="plan-body">
+                        <span class="plan-row">
+                            <span class="plan-name">Lifetime</span>
+                            <span class="plan-price">$19.99</span>
+                        </span>
+                        <span class="plan-note"><span>One-time purchase</span><span aria-hidden="true">&bull;</span><span>Includes every feature</span></span>
+                    </span>
+                </button>
+                <button type="button" class="plan" role="radio" aria-checked="false">
+                    <span class="plan-radio" aria-hidden="true"></span>
+                    <span class="plan-body">
+                        <span class="plan-row">
+                            <span class="plan-name">Monthly</span>
+                            <span class="plan-price">$2.99/mo</span>
+                        </span>
+                        <span class="plan-note"><span>Renews monthly</span><span aria-hidden="true">&bull;</span><span>Cancel anytime</span></span>
+                    </span>
+                </button>
+            </div>
+
+            <div class="buy-bar">
+                <button type="button" class="btn-primary">
+                    <span class="buy-label">Purchase lifetime</span>
+                    <span>$19.99</span>
+                </button>
+                <p class="buy-bar-note">One-time purchase &middot; Includes every feature below</p>
+            </div>
+
+            <ul class="strip-list">
+                <li class="strip">
+                    <div class="strip-text">
+                        <span class="strip-eyebrow">On the board</span>
+                        <strong>Sessions save themselves</strong>
+                        <span>Type a name, tap Correct or Incorrect, and that session is filed under the student. No extra step.</span>
+                    </div>
+                    <div class="strip-media">
+                        <picture>
+                            <source srcset="./shots/f-autosave-dark.png" media="(prefers-color-scheme: dark)">
+                            <img src="./shots/f-autosave.png" alt="A board row for Ava Mitchell on /s/ initial, showing 17 correct and 3 incorrect.">
+                        </picture>
+                    </div>
+                </li>
+
+                <li class="strip">
+                    <div class="strip-text">
+                        <span class="strip-eyebrow">Per student</span>
+                        <strong>Progress at a glance</strong>
+                        <span>Sessions, trials and percent correct for each student, with every dated session underneath.</span>
+                    </div>
+                    <div class="strip-media is-tall">
+                        <picture>
+                            <source srcset="./shots/f-progress-dark.png" media="(prefers-color-scheme: dark)">
+                            <img src="./shots/f-progress.png" alt="Ava Mitchell's record: 6 sessions, 120 trials, 78 percent correct, with dated sessions below.">
+                        </picture>
+                    </div>
+                </li>
+
+                <li class="strip">
+                    <div class="strip-text">
+                        <span class="strip-eyebrow">Your caseload</span>
+                        <strong>The whole roster, sorted</strong>
+                        <span>Search, sort and open any student. Percent correct sits on every row.</span>
+                    </div>
+                    <div class="strip-media is-tall">
+                        <picture>
+                            <source srcset="./shots/f-roster-dark.png" media="(prefers-color-scheme: dark)">
+                            <img src="./shots/f-roster.png" alt="A student list showing six students with their session counts and percent correct.">
+                        </picture>
+                    </div>
+                </li>
+
+                <li class="strip">
+                    <div class="strip-text">
+                        <span class="strip-eyebrow">Less typing</span>
+                        <strong>Names fill in as you type</strong>
+                        <span>Your roster shows up in the Name field on the board, so the same student is never two records.</span>
+                    </div>
+                    <div class="strip-media">
+                        <picture>
+                            <source srcset="./shots/f-names-dark.png" media="(prefers-color-scheme: dark)">
+                            <img src="./shots/f-names.png" alt="Typing M in the name field suggests Ava Mitchell, Liam Okafor and Mia Fletcher.">
+                        </picture>
+                    </div>
+                </li>
+
+                <li class="strip">
+                    <div class="strip-text">
+                        <span class="strip-eyebrow">Paperwork</span>
+                        <strong>Export to a spreadsheet</strong>
+                        <span>Download everything as CSV for reports and IEP meetings, one row per session.</span>
+                    </div>
+                    <div class="strip-media">
+                        <picture>
+                            <source srcset="./shots/f-export-dark.png" media="(prefers-color-scheme: dark)">
+                            <img src="./shots/f-export.png" alt="A spreadsheet of exported sessions with student, target, correct, incorrect, total and percent columns.">
+                        </picture>
+                    </div>
+                </li>
+
+                <li class="strip">
+                    <div class="strip-text">
+                        <span class="strip-eyebrow">Everywhere</span>
+                        <strong>Sync across your devices</strong>
+                        <span>Sign in with your email and your roster is on your phone, tablet and laptop.</span>
+                    </div>
+                    <div class="strip-media">
+                        <picture>
+                            <source srcset="./shots/f-sync-dark.png" media="(prefers-color-scheme: dark)">
+                            <img src="./shots/f-sync.png" alt="The account details card showing a signed-in email address and Synced just now.">
+                        </picture>
+                    </div>
+                </li>
+            </ul>
+
+            <p class="paywall-links">
+                <button type="button" class="link-btn">Already purchased? Sign in</button>
+                <button type="button" class="link-btn">Have a code?</button>
+            </p>
+            <p class="paywall-fine">
+                Monthly renews automatically until cancelled in your store account. Lifetime is a one-time
+                purchase for as long as Speech Count is offered. <a href="../terms.html">Terms of Use</a> &middot;
+                <a href="../privacy.html">Privacy Policy</a>
+            </p>
+        </section>
+    </main>
+
+    <nav class="tab-bar" aria-label="Pages">
+        <a href="../index.html" class="tab"><span>Board</span></a>
+        <a href="#" class="tab" aria-current="page"><span>Students</span></a>
+        <a href="../account.html" class="tab"><span>Account</span></a>
+    </nav>
+</body>
+
+</html>

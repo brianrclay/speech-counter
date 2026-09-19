@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Paywall concepts - Speech Count</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light dark">
+    <link href="../css/reset.css" rel="stylesheet">
+    <link href="../css/style.css" rel="stylesheet">
+    <style>
+        body { padding: 24px var(--page-gutter) 48px; max-width: 760px; margin: 0 auto; }
+        h1 { font-size: 24px; margin: 0 0 6px; }
+        .sub { color: var(--text-muted); margin: 0 0 26px; line-height: 1.5; }
+        ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 14px; }
+        a.card {
+            display: block; text-decoration: none; color: inherit;
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 14px; padding: 16px; box-shadow: var(--shadow-sm);
+        }
+        a.card:hover { background: var(--surface-hover); }
+        a.card strong { display: block; font-size: 17px; margin-bottom: 5px; }
+        a.card span { display: block; color: var(--text-muted); font-size: 14px; line-height: 1.45; }
+        .tag {
+            display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: .04em;
+            text-transform: uppercase; color: var(--chip-fg); background: var(--chip-bg);
+            border-radius: var(--radius-pill); padding: 3px 9px; margin-bottom: 9px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Student paywall concepts</h1>
+    <p class="sub">
+        Three takes on the pre-purchase Students screen, each built on the app's own stylesheet and
+        illustrated with screenshots of the real app. Open one on a phone-width window to judge it fairly.
+    </p>
+    <ul>
+        <li>
+            <a class="card" href="./paywall-a-deck.html">
+                <span class="tag">Concept A</span>
+                <strong>Swipe deck</strong>
+                <span>A horizontal, snap-scrolling deck of five numbered cards above the plans. Shortest page of the three; the visuals are opt-in rather than forced on the reader.</span>
+            </a>
+        </li>
+        <li>
+            <a class="card" href="./paywall-b-strips.html">
+                <span class="tag">Concept B</span>
+                <strong>Feature strips</strong>
+                <span>One screenshot per claim, stacked full width, with the plans up top and a purchase bar that sticks as you scroll. The most complete argument and the longest page.</span>
+            </a>
+        </li>
+        <li>
+            <a class="card" href="./paywall-c-beforeafter.html">
+                <span class="tag">Concept C</span>
+                <strong>Before and after</strong>
+                <span>A single hero that shows a board row turning into a student record, then the plans, then the remaining features as small thumbnails.</span>
+            </a>
+        </li>
+    </ul>
+</body>
+
+</html>
