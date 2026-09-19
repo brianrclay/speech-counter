@@ -29,19 +29,16 @@
             var match = from.match(/\/(index|students|account)\.html$/);
             var page = match ? match[1] : /\/$/.test(from) ? 'index' : null;
             if (page === null) return;
-            var delta = order.indexOf('index') - order.indexOf(page);
+            var delta = order.indexOf('account') - order.indexOf(page);
             if (delta) document.documentElement.dataset.nav = delta > 0 ? 'forward' : 'back';
         })();
     </script>
-    <title>Speech Count</title>
+    <title>Account - Speech Count</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta name="description" content="Count speech as it happens">
+    <meta name="description" content="Your Speech Count account and plan">
     <meta name="color-scheme" content="light dark">
-    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#faf9fc">
-    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#150d1c">
-    <meta property="og:image" content="./assets/app-icon.png" />
-    <meta property="og:title" content="Speech Count" />
-    <meta property="og:description" content="Count speech as it happens" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#1f1529">
     <link rel="icon" href="./assets/favicon-192.png" sizes="192x192">
     <link rel="apple-touch-icon" href="./assets/apple-touch-icon.png">
     <!-- Inline so the opt-in is known before first render; in the external
@@ -51,85 +48,120 @@
     <link href="./css/style.css" rel="stylesheet">
 </head>
 
-<body class="board-page">
+<body class="account-page">
+    <header class="app-header">
+        <div class="app-header-inner">
+            <h1 class="app-title">Account</h1>
+        </div>
+    </header>
+
     <main class="page">
-        <h1 class="sr-only">Speech Count</h1>
-        <div class="board-toolbar">
-            <button type="button" id="undo" class="btn" disabled aria-label="Undo last action">
-                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                    stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-                    <path d="M3 3v5h5" />
-                </svg>
-                <span>Undo</span>
-            </button>
-            <button type="button" id="clear" class="btn" aria-label="Clear all rows">
-                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                    stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="3 6 5 6 21 6" />
-                    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-                    <path d="M10 11v6" />
-                    <path d="M14 11v6" />
-                    <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
-                </svg>
-                <span>Clear</span>
-            </button>
+        <div id="billing-banner" class="billing-banner" hidden>
+            <span>There's a problem with your payment method.</span>
+            <a id="billing-banner-link" href="#" target="_blank" rel="noopener">Update</a>
         </div>
 
-        <div class="row-wrapper" id="row-wrapper"></div>
-
-        <div class="row template">
-            <button type="button" class="row-swipe-action" tabindex="-1" aria-hidden="true">
-                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                    stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="3 6 5 6 21 6" />
-                    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-                    <path d="M10 11v6" />
-                    <path d="M14 11v6" />
-                    <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
-                </svg>
-                <span>Remove</span>
-            </button>
-            <div class="row-body">
-                <div class="row-info">
-                    <div class="name-fields">
-                        <input type="text" class="field" placeholder="Name" aria-label="Name">
-                        <input type="text" class="field" placeholder="Target" aria-label="Target">
-                    </div>
-                    <span class="stats">
-                        <span class="total">Total: <span class="totalCount">0</span></span>
-                        <span class="percent">Correct: <span class="percentValue">0%</span></span>
-                    </span>
-                    <button type="button" class="delete-row" aria-label="Remove row">
-                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="3 6 5 6 21 6" />
-                            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-                            <path d="M10 11v6" />
-                            <path d="M14 11v6" />
-                            <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
-                        </svg>
-                        <span>Remove</span>
-                    </button>
-                </div>
-                <button type="button" class="ticker correct">0</button>
-                <button type="button" class="ticker incorrect">0</button>
+        <section id="account-promo" class="promo-card" hidden>
+            <div class="promo-text">
+                <h2 class="promo-title">Get Speech Count Pro</h2>
+                <p class="promo-lead">Easily manage all your students and sync across your devices</p>
             </div>
+            <a class="btn-primary btn-dark" href="./students.html">Learn more</a>
+        </section>
+
+        <section id="account-signed-out" class="account-card login-card" hidden>
+            <h2 class="login-title">Already have an account?</h2>
+            <button type="button" id="account-signin" class="btn-primary btn-quiet">Log in now</button>
+        </section>
+
+        <section id="account-details" class="account-section" aria-labelledby="details-title" hidden>
+            <h2 id="details-title" class="section-title">Details</h2>
+            <div class="account-card">
+                <div class="account-row">
+                    <div class="account-text">
+                        <strong id="account-email"></strong>
+                        <span id="account-sync-status" aria-live="polite">Synced</span>
+                    </div>
+                </div>
+                <p class="account-support">Support ID: <code id="support-id">-</code></p>
+            </div>
+        </section>
+
+        <section id="account-plan" class="account-section" aria-labelledby="plan-title" hidden>
+            <h2 id="plan-title" class="section-title">Plan</h2>
+            <div class="account-card">
+                <div class="account-row">
+                    <div class="account-text">
+                        <strong>Speech Count Pro</strong>
+                        <span id="plan-meta"></span>
+                    </div>
+                    <span id="plan-status" class="plan-status"></span>
+                </div>
+                <a id="manage-subscription" class="account-link" href="#" target="_blank" rel="noopener" hidden><span id="manage-subscription-label">Manage subscription</span><span class="sr-only"> (opens in a new tab)</span></a>
+                <a id="plan-cta" class="account-link" href="./students.html" hidden>Get Speech Count Pro</a>
+                <button type="button" id="restore-purchases" class="link-btn account-link" hidden>Restore purchases</button>
+            </div>
+        </section>
+
+        <section class="account-section" aria-labelledby="privacy-title">
+            <h2 id="privacy-title" class="section-title">Privacy</h2>
+            <div class="account-card">
+                <label class="account-row account-toggle">
+                    <span class="account-text">
+                        <strong>Share anonymous usage data</strong>
+                        <span>Helps us see which features get used. Never includes student names or results. Takes effect on the next page load.</span>
+                    </span>
+                    <input type="checkbox" id="analytics-toggle" class="switch">
+                </label>
+            </div>
+        </section>
+
+        <div id="account-danger" class="account-danger" hidden>
+            <button type="button" id="account-delete" class="btn">Delete account</button>
+            <button type="button" id="account-signout" class="btn">Log out</button>
         </div>
 
-        <button type="button" id="add-row" class="add-btn">
-            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="9" />
-                <line x1="12" y1="8" x2="12" y2="16" />
-                <line x1="8" y1="12" x2="16" y2="12" />
-            </svg>
-            <span>Add</span>
-        </button>
+        <footer class="app-footer">
+            <a href="./support.html">Support</a>
+            <a href="./terms.html">Terms</a>
+            <a href="./privacy.html">Privacy policy</a>
+        </footer>
     </main>
 
+    <div id="sheet" class="sheet" hidden>
+        <button type="button" class="sheet-backdrop" id="sheet-backdrop" tabindex="-1" aria-label="Close"></button>
+        <div class="sheet-panel" role="dialog" aria-modal="true" aria-labelledby="sheet-title">
+            <form id="sheet-form" class="sheet-content" novalidate>
+                <div class="sheet-head">
+                    <h2 id="sheet-title" class="sheet-title">Create account to purchase</h2>
+                    <button type="button" id="sheet-close" class="sheet-close" aria-label="Close">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M18 6L6 18" />
+                            <path d="M6 6L18 18" />
+                        </svg>
+                    </button>
+                </div>
+                <div id="sheet-plan" class="sheet-plan" hidden></div>
+                <div class="sheet-step" data-step="email">
+                    <label class="sheet-label" for="sheet-email">Email</label>
+                    <input type="email" id="sheet-email" class="field" name="email" autocomplete="email"
+                        placeholder="you@school.org" required>
+                </div>
+                <div class="sheet-step" data-step="code" hidden>
+                    <label class="sheet-label" for="sheet-code">Confirmation code</label>
+                    <input type="text" id="sheet-code" class="field" name="code" inputmode="numeric" pattern="[0-9]*"
+                        autocomplete="one-time-code" maxlength="6">
+                    <p class="sheet-help">Enter the confirmation code that was just emailed to you.</p>
+                </div>
+                <p id="sheet-status" class="sheet-status" aria-live="polite"></p>
+                <button type="submit" id="sheet-submit" class="btn-primary">Continue</button>
+            </form>
+        </div>
+    </div>
+
     <nav class="tab-bar" aria-label="Pages">
-        <a href="./index.html" class="tab" aria-current="page">
+        <a href="./index.html" class="tab">
             <svg class="icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"
                 stroke-linecap="round" stroke-linejoin="round">
                 <path d="M6.66667 5H17.5" />
@@ -151,7 +183,7 @@
             </svg>
             <span>Students</span>
         </a>
-        <a href="./account.html" class="tab">
+        <a href="./account.html" class="tab" aria-current="page">
             <svg class="icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"
                 stroke-linecap="round" stroke-linejoin="round">
                 <path d="M10 12.5C11.3807 12.5 12.5 11.3807 12.5 10C12.5 8.61929 11.3807 7.5 10 7.5C8.61929 7.5 7.5 8.61929 7.5 10C7.5 11.3807 8.61929 12.5 10 12.5Z" />
@@ -161,12 +193,13 @@
         </a>
     </nav>
 
+
     <script src="./store.js"></script>
     <script src="./billing.js"></script>
     <script src="./account.js"></script>
     <script src="./sync.js"></script>
-    <script src="./swipe.js"></script>
-    <script src="./main.js"></script>
+    <script src="./sheet.js"></script>
+    <script src="./account-page.js"></script>
 </body>
 
 </html>

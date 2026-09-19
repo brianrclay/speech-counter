@@ -7,11 +7,10 @@
     const clearBtn = document.getElementById('clear');
     const addRowBtn = document.getElementById('add-row');
 
+    const store = window.SpeechStore;
+
     const MAX_HISTORY = 100;
     const history = [];
-
-    const STORAGE_KEY = 'speech-counter-state-v1';
-    let saveTimer = null;
 
     function reducedMotion() {
         return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -53,25 +52,7 @@
         row.addEventListener('transitionend', onTransitionEnd);
     }
 
-    function hapticTap() {
-        // Inside the Capacitor native shell, window.Capacitor is injected
-        // automatically and routes to real iOS/Android haptics - this is
-        // what actually gets iOS vibrating, since Safari's Vibration API
-        // never did. No import/bundler needed: Capacitor's plugin bridge
-        // is available as a global once running in the native app.
-        const capacitor = window.Capacitor;
-        if (capacitor && capacitor.isNativePlatform && capacitor.isNativePlatform()
-            && capacitor.Plugins && capacitor.Plugins.Haptics) {
-            capacitor.Plugins.Haptics.impact({ style: 'LIGHT' }).catch(() => {});
-            return;
-        }
-
-        // Plain-browser fallback: Android Chrome supports short vibrations;
-        // iOS Safari has no Vibration API and silently no-ops here.
-        if (typeof navigator.vibrate === 'function') {
-            navigator.vibrate(10);
-        }
-    }
+    const hapticTap = window.SpeechSwipe.haptic;
 
     function pop(el) {
         if (reducedMotion()) return;
@@ -97,68 +78,105 @@
         const total = correct + incorrect;
         const percent = total === 0 ? 0 : Math.ceil((correct / total) * 100);
         row.querySelector('.ticker.correct').textContent = correct;
+        row.querySelector('.ticker.correct').setAttribute('aria-label', correct + ' correct');
         row.querySelector('.ticker.incorrect').textContent = incorrect;
+        row.querySelector('.ticker.incorrect').setAttribute('aria-label', incorrect + ' incorrect');
         row.querySelector('.totalCount').textContent = total;
         row.querySelector('.percentValue').textContent = percent + '%';
     }
 
-    function cloneTemplateRow() {
+    function nameInput(row) {
+        return row.querySelector('.name-fields input:first-child');
+    }
+
+    function targetInput(row) {
+        return row.querySelector('.name-fields input:last-child');
+    }
+
+    function cloneTemplateRow(sessionId) {
         const row = template.cloneNode(true);
         row.classList.remove('template');
+        row.dataset.sessionId = sessionId || store.uuid();
+        const name = nameInput(row);
+        name.setAttribute('role', 'combobox');
+        name.setAttribute('aria-autocomplete', 'list');
+        name.setAttribute('aria-expanded', 'false');
+        name.setAttribute('aria-controls', 'name-suggestions');
+        name.autocomplete = 'off';
         return row;
     }
 
     function serializeRows() {
         return Array.from(rowWrapper.querySelectorAll('.row:not(.template)')).map((row) => {
-            const inputs = row.querySelectorAll('.name-fields input');
             const { correct, incorrect } = getRowCounts(row);
             return {
-                name: inputs[0] ? inputs[0].value : '',
-                target: inputs[1] ? inputs[1].value : '',
+                sessionId: row.dataset.sessionId,
+                name: nameInput(row).value,
+                target: targetInput(row).value,
                 correct,
                 incorrect,
             };
         });
     }
 
-    // Debounced so typing in a Name/Target field doesn't hit storage on
-    // every keystroke; button actions still feel instant since 150ms is
-    // well under human perception for a "did it save" concern.
     function saveState() {
-        clearTimeout(saveTimer);
-        saveTimer = setTimeout(() => {
-            try {
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(serializeRows()));
-            } catch (err) {
-                // Storage can be unavailable (private browsing, full, disabled) - not fatal.
-            }
-        }, 150);
+        store.board.save(serializeRows());
     }
 
     function buildRowFromData(data) {
-        const row = cloneTemplateRow();
-        const inputs = row.querySelectorAll('.name-fields input');
-        if (inputs[0]) inputs[0].value = data.name || '';
-        if (inputs[1]) inputs[1].value = data.target || '';
+        const row = cloneTemplateRow(data.sessionId);
+        nameInput(row).value = data.name || '';
+        targetInput(row).value = data.target || '';
         renderRow(row, data.correct || 0, data.incorrect || 0);
         return row;
     }
 
     function loadState() {
-        let saved;
-        try {
-            saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
-        } catch (err) {
-            saved = null;
-        }
-        // Only bail when nothing has ever been saved (null/invalid JSON) -
-        // an empty array is a legitimate saved state (the user deleted
-        // every row) and should be restored as empty, not backfilled with
-        // the default blank row from the markup.
-        if (!Array.isArray(saved)) return;
-
+        const saved = store.board.load();
         rowWrapper.querySelectorAll('.row:not(.template)').forEach((row) => row.remove());
+        // Only fall back to a blank row when nothing has ever been saved -
+        // an empty array is a legitimate saved state (the user deleted
+        // every row) and should be restored as empty.
+        if (!Array.isArray(saved)) {
+            rowWrapper.appendChild(cloneTemplateRow());
+            return;
+        }
         saved.forEach((data) => rowWrapper.appendChild(buildRowFromData(data)));
+    }
+
+    // A row is a session. It's recorded under a student only while it has a
+    // name and at least one trial; otherwise any earlier record is retired
+    // (undo back to 0/0, or the name being cleared).
+    function syncSession(row) {
+        if (!store.entitlements.isPremium()) return;
+        const id = row.dataset.sessionId;
+        const student = store.students.findByName(nameInput(row).value);
+        const { correct, incorrect } = getRowCounts(row);
+        if (!student || correct + incorrect === 0) {
+            store.sessions.remove(id);
+            return;
+        }
+        store.sessions.upsert({
+            id,
+            studentId: student.id,
+            target: targetInput(row).value,
+            correct,
+            incorrect,
+        });
+    }
+
+    // Students are created on commit (blur, Enter, picking a suggestion, or
+    // the first tap), never per keystroke - otherwise typing "Brian" would
+    // leave "B", "Br", "Bri"... in the roster.
+    function commitName(row) {
+        const input = nameInput(row);
+        const { correct, incorrect } = getRowCounts(row);
+        if (store.entitlements.isPremium() && correct + incorrect > 0) {
+            const student = store.students.findOrCreate(input.value);
+            if (student) input.value = student.name;
+        }
+        syncSession(row);
+        saveState();
     }
 
     function tick(row, kind, tickBtn) {
@@ -171,7 +189,7 @@
         pop(tickBtn);
         hapticTap();
         pushHistory({ type: 'tick', row, kind });
-        saveState();
+        commitName(row);
     }
 
     function deleteRow(row) {
@@ -208,6 +226,7 @@
                 } else {
                     renderRow(action.row, correct, incorrect - 1);
                 }
+                syncSession(action.row);
                 break;
             }
             case 'addRow': {
@@ -236,185 +255,20 @@
         saveState();
     }
 
-    // Touch swipe-to-remove, iOS Mail style: dragging a row leftwards slides
-    // its body over a Remove action on the right edge. A short swipe snaps
-    // the action open; a long swipe or a quick fling carries the row off
-    // and removes it. Mouse pointers are ignored - the Remove button covers
-    // desktop.
-    const swipe = (() => {
-        const OPEN_WIDTH = 104;
-        const DECIDE_DISTANCE = 8;
-        const COMMIT_FRACTION = 0.55;
-        const FLING_VELOCITY = 0.6;
-        let openRow = null;
-        let drag = null;
-        let suppressClick = false;
-        let suppressTimer = null;
-
-        const bodyOf = (row) => row.querySelector('.row-body');
-        const actionOf = (row) => row.querySelector('.row-swipe-action');
-
-        function suppressNextClick() {
-            suppressClick = true;
-            clearTimeout(suppressTimer);
-            suppressTimer = setTimeout(() => { suppressClick = false; }, 400);
-        }
-
-        function setOffset(row, x) {
-            bodyOf(row).style.transform = x ? 'translateX(' + x + 'px)' : '';
-            actionOf(row).style.width = -x > OPEN_WIDTH ? -x + 'px' : '';
-        }
-
-        function reset(row) {
-            bodyOf(row).classList.remove('swiping');
-            bodyOf(row).style.transform = '';
-            actionOf(row).style.width = '';
-            actionOf(row).classList.remove('will-remove');
-            if (openRow === row) openRow = null;
-        }
-
-        function open(row) {
-            if (openRow && openRow !== row) reset(openRow);
-            openRow = row;
-            bodyOf(row).classList.remove('swiping');
-            actionOf(row).classList.remove('will-remove');
-            setOffset(row, -OPEN_WIDTH);
-        }
-
-        function commit(row) {
-            if (openRow === row) openRow = null;
-            const body = bodyOf(row);
-            actionOf(row).classList.add('will-remove');
-            body.classList.remove('swiping');
-            if (reducedMotion()) {
-                deleteRow(row);
-                return;
-            }
-            function onSlideEnd(event) {
-                if (event.propertyName !== 'transform') return;
-                body.removeEventListener('transitionend', onSlideEnd);
-                deleteRow(row);
-            }
-            body.addEventListener('transitionend', onSlideEnd);
-            setOffset(row, -row.offsetWidth);
-        }
-
-        function currentOffset(d) {
-            return Math.min(0, d.startOffset + (d.lastX - d.startX));
-        }
-
-        rowWrapper.addEventListener('pointerdown', (event) => {
-            if (event.pointerType === 'mouse' || event.button !== 0) return;
-            if (event.target.closest('.row-swipe-action')) return;
-            const body = event.target.closest('.row-body');
-            if (openRow && (!body || body.closest('.row') !== openRow)) reset(openRow);
-            if (!body) return;
-            const row = body.closest('.row');
-            if (row.classList.contains('row-exit')) return;
-            drag = {
-                row,
-                body,
-                pointerId: event.pointerId,
-                startX: event.clientX,
-                startY: event.clientY,
-                lastX: event.clientX,
-                lastT: event.timeStamp,
-                velocity: 0,
-                startOffset: openRow === row ? -OPEN_WIDTH : 0,
-                active: false,
-            };
-        });
-
-        rowWrapper.addEventListener('pointermove', (event) => {
-            if (!drag || event.pointerId !== drag.pointerId) return;
-            const dx = event.clientX - drag.startX;
-            const dy = event.clientY - drag.startY;
-
-            if (!drag.active) {
-                if (Math.abs(dy) > DECIDE_DISTANCE && Math.abs(dy) > Math.abs(dx)) {
-                    drag = null;
-                    return;
-                }
-                if (Math.abs(dx) < DECIDE_DISTANCE) return;
-                drag.active = true;
-                drag.body.classList.add('swiping');
-                drag.body.setPointerCapture(event.pointerId);
-            }
-
-            const dt = event.timeStamp - drag.lastT;
-            if (dt > 0) drag.velocity = (event.clientX - drag.lastX) / dt;
-            drag.lastX = event.clientX;
-            drag.lastT = event.timeStamp;
-
-            const offset = currentOffset(drag);
-            setOffset(drag.row, offset);
-
-            const action = actionOf(drag.row);
-            const willRemove = -offset > drag.row.offsetWidth * COMMIT_FRACTION;
-            if (willRemove !== action.classList.contains('will-remove')) {
-                action.classList.toggle('will-remove', willRemove);
-                hapticTap();
-            }
-        });
-
-        function endDrag(event) {
-            if (!drag || event.pointerId !== drag.pointerId) return;
-            const d = drag;
-            drag = null;
-
-            if (!d.active) {
-                // A plain tap on an open row just closes it.
-                if (openRow === d.row) {
-                    reset(d.row);
-                    suppressNextClick();
-                }
-                return;
-            }
-
-            suppressNextClick();
-            d.body.classList.remove('swiping');
-            const offset = currentOffset(d);
-            const width = d.row.offsetWidth;
-            const flungLeft = d.velocity < -FLING_VELOCITY;
-            const flungRight = d.velocity > FLING_VELOCITY;
-
-            if (event.type === 'pointercancel') {
-                reset(d.row);
-            } else if (-offset > width * COMMIT_FRACTION || (flungLeft && -offset > OPEN_WIDTH)) {
-                commit(d.row);
-            } else if (-offset > OPEN_WIDTH / 2 && !flungRight) {
-                open(d.row);
-            } else {
-                reset(d.row);
-            }
-        }
-        rowWrapper.addEventListener('pointerup', endDrag);
-        rowWrapper.addEventListener('pointercancel', endDrag);
-
-        // The click that follows a swipe (or a tap that closed a row) must
-        // not land on a ticker or input underneath.
-        rowWrapper.addEventListener('click', (event) => {
-            if (!suppressClick) return;
-            suppressClick = false;
-            clearTimeout(suppressTimer);
-            event.stopPropagation();
-            event.preventDefault();
-        }, true);
-
-        return { reset, commit };
-    })();
+    const swipe = window.SpeechSwipe.attach({
+        container: rowWrapper,
+        item: '.row',
+        body: '.row-body',
+        action: '.row-swipe-action',
+        isDisabled: (row) => row.classList.contains('row-exit'),
+        onRemove: deleteRow,
+    });
 
     rowWrapper.addEventListener('click', (event) => {
         const tickBtn = event.target.closest('.ticker');
         if (tickBtn) {
             const kind = tickBtn.classList.contains('correct') ? 'correct' : 'incorrect';
             tick(tickBtn.closest('.row'), kind, tickBtn);
-            return;
-        }
-
-        const swipeBtn = event.target.closest('.row-swipe-action');
-        if (swipeBtn) {
-            swipe.commit(swipeBtn.closest('.row'));
             return;
         }
 
@@ -425,10 +279,176 @@
     });
 
     rowWrapper.addEventListener('input', (event) => {
+        if (!event.target.matches('.name-fields input')) return;
+        const row = event.target.closest('.row');
+        if (event.target === nameInput(row)) {
+            suggestions.update(event.target);
+        } else {
+            syncSession(row);
+        }
+        saveState();
+    });
+
+    rowWrapper.addEventListener('change', (event) => {
         if (event.target.matches('.name-fields input')) {
-            saveState();
+            commitName(event.target.closest('.row'));
         }
     });
+
+    // Searchable roster dropdown under whichever Name field is focused. One
+    // shared popover on <body> (.row clips overflow for its exit animation),
+    // placed with position: absolute in document coordinates rather than
+    // fixed: the iOS keyboard shifts the viewport, which drags a fixed
+    // element away from its input, whereas a page-anchored one scrolls with
+    // the row.
+    const suggestions = (() => {
+        const list = document.createElement('div');
+        list.id = 'name-suggestions';
+        list.className = 'name-suggestions';
+        list.setAttribute('role', 'listbox');
+        list.hidden = true;
+        document.body.appendChild(list);
+
+        let input = null;
+        let items = [];
+        let active = -1;
+        let closeTimer = null;
+
+        function position() {
+            if (!input) return;
+            const rect = input.getBoundingClientRect();
+            list.style.left = rect.left + window.scrollX + 'px';
+            list.style.top = rect.bottom + 4 + window.scrollY + 'px';
+            list.style.minWidth = rect.width + 'px';
+        }
+
+        // With the keyboard up, iOS scrolls the input into the visible area
+        // but not necessarily the space below it; nudge the page so the
+        // list shows too.
+        function reveal() {
+            if (list.hidden) return;
+            list.scrollIntoView({ block: 'nearest' });
+        }
+
+        function matches(query) {
+            const key = store.nameKey(query);
+            return store.students.list()
+                .filter((student) => !key || student.nameKey.includes(key))
+                .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+        }
+
+        function setActive(index) {
+            active = index;
+            Array.from(list.children).forEach((el, i) => {
+                el.classList.toggle('active', i === active);
+                el.setAttribute('aria-selected', i === active ? 'true' : 'false');
+            });
+            input.setAttribute('aria-activedescendant', active >= 0 ? list.children[active].id : '');
+            if (active >= 0) list.children[active].scrollIntoView({ block: 'nearest' });
+        }
+
+        function close() {
+            clearTimeout(closeTimer);
+            if (!input) return;
+            input.setAttribute('aria-expanded', 'false');
+            input.removeAttribute('aria-activedescendant');
+            list.hidden = true;
+            list.textContent = '';
+            input = null;
+            items = [];
+            active = -1;
+        }
+
+        function update(target) {
+            if (!store.entitlements.isPremium()) return;
+            clearTimeout(closeTimer);
+            input = target;
+            items = matches(input.value);
+            if (items.length === 0) {
+                list.hidden = true;
+                list.textContent = '';
+                input.setAttribute('aria-expanded', 'false');
+                return;
+            }
+            list.textContent = '';
+            items.forEach((student, i) => {
+                const option = document.createElement('div');
+                option.className = 'name-suggestion';
+                option.id = 'name-suggestion-' + i;
+                option.setAttribute('role', 'option');
+                option.textContent = student.name;
+                list.appendChild(option);
+            });
+            list.hidden = false;
+            input.setAttribute('aria-expanded', 'true');
+            setActive(-1);
+            position();
+        }
+
+        function choose(index) {
+            if (!input || index < 0 || index >= items.length) return;
+            const row = input.closest('.row');
+            input.value = items[index].name;
+            close();
+            commitName(row);
+        }
+
+        // Keep the input focused while an option is tapped so the list isn't
+        // torn down before the click lands; selection itself waits for the
+        // click so a swipe to scroll the list doesn't pick a name.
+        list.addEventListener('pointerdown', (event) => event.preventDefault());
+        list.addEventListener('click', (event) => {
+            const option = event.target.closest('.name-suggestion');
+            if (option) choose(Array.from(list.children).indexOf(option));
+        });
+
+        rowWrapper.addEventListener('focusin', (event) => {
+            if (!event.target.matches('.name-fields input:first-child')) return;
+            update(event.target);
+            // Give the keyboard a moment to open and settle the scroll.
+            setTimeout(reveal, 350);
+        });
+
+        rowWrapper.addEventListener('focusout', (event) => {
+            if (event.target !== input) return;
+            clearTimeout(closeTimer);
+            closeTimer = setTimeout(close, 150);
+        });
+
+        rowWrapper.addEventListener('keydown', (event) => {
+            if (event.target !== input || list.hidden) return;
+            switch (event.key) {
+                case 'ArrowDown':
+                    event.preventDefault();
+                    setActive((active + 1) % items.length);
+                    break;
+                case 'ArrowUp':
+                    event.preventDefault();
+                    setActive((active - 1 + items.length) % items.length);
+                    break;
+                case 'Enter':
+                    if (active >= 0) {
+                        event.preventDefault();
+                        choose(active);
+                    }
+                    break;
+                case 'Escape':
+                    event.preventDefault();
+                    close();
+                    break;
+            }
+        });
+
+        window.addEventListener('resize', position);
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', () => {
+                position();
+                reveal();
+            });
+        }
+
+        return { update };
+    })();
 
     addRowBtn.addEventListener('click', () => {
         const row = cloneTemplateRow();
@@ -459,7 +479,7 @@
 
     undoBtn.addEventListener('click', undo);
 
-    loadState();
+    store.ready().then(loadState).then(() => window.SpeechBilling.refreshIfPremium());
 
     document.addEventListener('keydown', (event) => {
         if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'z') {

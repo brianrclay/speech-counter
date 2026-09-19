@@ -9,7 +9,11 @@
   },
   "dependencies": {
     "@capacitor/core": "^8.5.2",
-    "@capacitor/haptics": "^8.0.2"
+    "@capacitor/haptics": "^8.0.2",
+    "@capacitor/preferences": "^8.0.1",
+    "@capacitor/share": "^8.0.1",
+    "@netlify/blobs": "^10.7.13",
+    "@revenuecat/purchases-capacitor": "^13.5.1"
   },
   "devDependencies": {
     "@capacitor/android": "^8.5.2",

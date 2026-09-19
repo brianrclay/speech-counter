@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <!-- Google tag (gtag.js) - skipped on Netlify branch/preview deploys and
+         the local dev server so staging traffic stays out of production stats. -->
+    <script>
+        // Off on staging and local, and off when the user has turned analytics
+        // off on the Account page. No ads features, no IP-based location.
+        if (!location.hostname.endsWith('.netlify.app') && location.protocol !== 'http:'
+            && (function () { try { return localStorage.getItem('speech-counter:analytics') !== 'off'; } catch (e) { return true; } })()) {
+            window.dataLayer = window.dataLayer || [];
+            window.gtag = function () { dataLayer.push(arguments); };
+            gtag('js', new Date());
+            gtag('config', 'G-QPE28RCTSV', { anonymize_ip: true, allow_google_signals: false, allow_ad_personalization_signals: false });
+            var gaScript = document.createElement('script');
+            gaScript.async = true;
+            gaScript.src = 'https://www.googletagmanager.com/gtag/js?id=G-QPE28RCTSV';
+            document.head.appendChild(gaScript);
+        }
+    </script>
+    <!-- Slide direction for the page transition: tabs are ordered
+         board -> students -> account, so arriving from a later tab slides back. -->
+    <script>
+        (function () {
+            var order = ['index', 'students', 'account'];
+            var from = document.referrer.split(/[?#]/)[0];
+            var match = from.match(/\/(index|students|account)\.html$/);
+            var page = match ? match[1] : /\/$/.test(from) ? 'index' : null;
+            if (page === null) return;
+            var delta = order.indexOf('students') - order.indexOf(page);
+            if (delta) document.documentElement.dataset.nav = delta > 0 ? 'forward' : 'back';
+        })();
+    </script>
+    <title>Students - Speech Count</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="description" content="Saved results for each student">
+    <meta name="color-scheme" content="light dark">
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#1f1529">
+    <link rel="icon" href="./assets/favicon-192.png" sizes="192x192">
+    <link rel="apple-touch-icon" href="./assets/apple-touch-icon.png">
+    <!-- Inline so the opt-in is known before first render; in the external
+         stylesheet it races the page load and the transition gets skipped. -->
+    <style>@view-transition { navigation: auto; }</style>
+    <link href="./css/reset.css" rel="stylesheet">
+    <link href="./css/style.css" rel="stylesheet">
+</head>
+
+<body class="students-page">
+    <header class="app-header">
+        <div class="app-header-inner">
+            <h1 class="app-title">Students</h1>
+            <div class="app-actions">
+                <button type="button" id="export" class="btn" aria-label="Export as CSV">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="17 8 12 3 7 8" />
+                        <line x1="12" y1="3" x2="12" y2="15" />
+                    </svg>
+                    <span>Export</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="page">
+        <section id="paywall" class="paywall" hidden>
+            <div class="paywall-hero">
+                <h2 class="paywall-title">Keep every student's progress</h2>
+                <p class="paywall-lead">
+                    Speech Count Pro turns the board into a record. Type a name, tap Correct or Incorrect, and
+                    the session is saved to that student automatically.
+                </p>
+            </div>
+            <h3 class="paywall-heading">Plans</h3>
+            <div class="plans" role="radiogroup" aria-label="Choose a plan">
+                <button type="button" class="plan" role="radio" aria-checked="true" data-package="lifetime">
+                    <span class="plan-radio" aria-hidden="true"></span>
+                    <span class="plan-body">
+                        <span class="plan-row">
+                            <span class="plan-name">Lifetime</span>
+                            <span class="plan-price" data-price="lifetime">$19.99</span>
+                        </span>
+                        <span class="plan-note"><span>One-time purchase</span><span aria-hidden="true">&bull;</span><span>Includes every feature</span></span>
+                    </span>
+                </button>
+                <button type="button" class="plan" role="radio" aria-checked="false" data-package="monthly">
+                    <span class="plan-radio" aria-hidden="true"></span>
+                    <span class="plan-body">
+                        <span class="plan-row">
+                            <span class="plan-name">Monthly</span>
+                            <span class="plan-price" data-price="monthly">$2.99/mo</span>
+                        </span>
+                        <span class="plan-note"><span>Renews monthly</span><span aria-hidden="true">&bull;</span><span>Cancel anytime</span></span>
+                    </span>
+                </button>
+            </div>
+            <button type="button" id="buy" class="btn-primary">
+                <span class="buy-label" id="buy-label">Purchase lifetime</span>
+                <span id="buy-price">$19.99</span>
+            </button>
+            <p id="paywall-status" class="paywall-status" aria-live="polite"></p>
+            <h3 class="paywall-heading">Features</h3>
+            <ul class="paywall-features">
+                <li>
+                    <span class="feature-body">
+                        <strong>Sessions save themselves</strong>
+                        <span>Every tally on the board lands in the student's history - no extra step.</span>
+                    </span>
+                </li>
+                <li>
+                    <span class="feature-body">
+                        <strong>Progress at a glance</strong>
+                        <span>Percent correct over time for each student and each target.</span>
+                    </span>
+                </li>
+                <li>
+                    <span class="feature-body">
+                        <strong>Names fill in as you type</strong>
+                        <span>Your roster shows up in the Name field on the board.</span>
+                    </span>
+                </li>
+                <li>
+                    <span class="feature-body">
+                        <strong>Sync across your devices</strong>
+                        <span>Sign in with your email and your roster is on your phone, tablet, and laptop.</span>
+                    </span>
+                </li>
+                <li>
+                    <span class="feature-body">
+                        <strong>Export to a spreadsheet</strong>
+                        <span>Download everything as CSV for reports and IEP meetings.</span>
+                    </span>
+                </li>
+            </ul>
+            <p id="paywall-export" class="paywall-export" hidden>
+                <span id="paywall-export-count"></span> saved on this device.
+                <button type="button" id="paywall-export-btn" class="link-btn">Export as CSV</button>
+            </p>
+            <p class="paywall-links">
+                <button type="button" id="restore-purchases" class="link-btn" hidden>Restore purchases</button>
+                <button type="button" id="paywall-signin-toggle" class="link-btn">Already purchased? Sign in</button>
+            </p>
+            <p class="paywall-fine">
+                Monthly renews automatically until cancelled in your store account. Payment is charged
+                to your App Store, Google Play, or card at purchase. Lifetime is a one-time purchase for
+                as long as Speech Count is offered. <a href="./terms.html">Terms of Use</a> &middot;
+                <a href="./privacy.html">Privacy Policy</a>
+            </p>
+        </section>
+
+        <section id="purchase-done" class="purchase-done" hidden>
+            <div class="purchase-done-body">
+                <div class="purchase-done-badge" aria-hidden="true">
+                    <svg class="icon" viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M23.3333 7L10.5 19.8333L4.66667 14" />
+                    </svg>
+                </div>
+                <div class="purchase-done-text">
+                    <h2 class="purchase-done-title" tabindex="-1">Purchase completed</h2>
+                    <p class="purchase-done-lead">We've emailed you a receipt. Happy counting!</p>
+                </div>
+            </div>
+            <button type="button" id="purchase-finish" class="btn-primary">Finish</button>
+        </section>
+
+        <section id="list-view">
+            <div id="storage-banner" class="billing-banner" hidden>
+                <span>Changes couldn't be saved on this device. Free up storage or leave private browsing.</span>
+            </div>
+            <div id="billing-banner" class="billing-banner" hidden>
+                <span>There's a problem with your payment method.</span>
+                <a id="billing-banner-link" href="#" target="_blank" rel="noopener">Update</a>
+            </div>
+            <div class="list-toolbar">
+                <input type="search" id="student-search" class="field" placeholder="Search" aria-label="Search students" autocomplete="off">
+                <div class="sort-menu">
+                    <button type="button" id="sort-btn" class="btn btn-icon" aria-label="Sort students" aria-haspopup="menu"
+                        aria-expanded="false" aria-controls="sort-options">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round">
+                            <path d="m21 16-4 4-4-4" />
+                            <path d="M17 20V4" />
+                            <path d="m3 8 4-4 4 4" />
+                            <path d="M7 4v16" />
+                        </svg>
+                    </button>
+                    <div id="sort-options" class="menu" role="menu" aria-label="Sort students" hidden>
+                        <button type="button" class="menu-item" role="menuitemradio" aria-checked="true" data-sort="updated">Last updated</button>
+                        <button type="button" class="menu-item" role="menuitemradio" aria-checked="false" data-sort="name">A to Z</button>
+                    </div>
+                </div>
+                <button type="button" id="add-student" class="add-btn" aria-label="Add student">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="9" />
+                        <line x1="12" y1="8" x2="12" y2="16" />
+                        <line x1="8" y1="12" x2="16" y2="12" />
+                    </svg>
+                    <span>Add</span>
+                </button>
+            </div>
+            <div id="bulk-toolbar" class="bulk-toolbar" hidden>
+                <button type="button" id="bulk-select-all" class="btn">Select all</button>
+                <span id="bulk-count" class="bulk-count" aria-live="polite">0 selected</span>
+                <button type="button" id="bulk-delete" class="btn btn-danger" disabled>Delete</button>
+                <button type="button" id="bulk-done" class="btn btn-ghost">Done</button>
+            </div>
+            <form id="add-student-form" class="add-student-form" hidden>
+                <input type="text" id="new-student-name" class="field" placeholder="Student name" autocomplete="off" maxlength="80">
+                <button type="submit" class="add-btn">Add</button>
+                <button type="button" id="cancel-add-student" class="btn btn-ghost">Cancel</button>
+            </form>
+            <p id="select-hint" class="sr-only">Press Space, or press and hold, to select several students.</p>
+            <div id="student-list" class="student-list"></div>
+            <p id="empty-state" class="empty-state" hidden>
+                No students yet. Add one above, or type a name on the board and tap Correct or Incorrect -
+                the student and their session are saved automatically.
+            </p>
+            <p id="no-matches" class="empty-state" hidden>No students match that search.</p>
+        </section>
+
+        <section id="detail-view" hidden>
+            <a href="#" class="back-link">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="15 18 9 12 15 6" />
+                </svg>
+                <span>All students</span>
+            </a>
+            <div class="student-heading">
+                <h2 id="student-name" class="student-name"></h2>
+                <button type="button" id="rename" class="btn btn-sm">Rename</button>
+            </div>
+            <div class="summary">
+                <div class="stat">
+                    <span class="stat-value" id="stat-sessions">0</span>
+                    <span class="stat-label">Sessions</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-value" id="stat-trials">0</span>
+                    <span class="stat-label">Trials</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-value" id="stat-percent">0%</span>
+                    <span class="stat-label">Correct</span>
+                </div>
+            </div>
+            <div id="session-list" class="session-list"></div>
+            <p id="no-sessions" class="empty-state" hidden>No sessions recorded for this student yet.</p>
+            <button type="button" id="delete-student" class="delete-student">Delete student</button>
+        </section>
+
+        <template id="student-swipe-action">
+            <button type="button" class="row-swipe-action" tabindex="-1" aria-hidden="true">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="3 6 5 6 21 6" />
+                    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                    <path d="M10 11v6" />
+                    <path d="M14 11v6" />
+                    <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+                </svg>
+                <span>Delete</span>
+            </button>
+        </template>
+
+        <div class="row template">
+            <div class="row-body">
+                <div class="row-info">
+                    <span class="session-time"></span>
+                    <span class="session-target"></span>
+                </div>
+                <span class="session-count session-correct"></span>
+                <span class="session-count session-incorrect"></span>
+                <div class="session-actions">
+                        <button type="button" class="edit-session" aria-label="Edit session">
+                            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
+                            </svg>
+                            <span>Edit</span>
+                        </button>
+                        <button type="button" class="cancel-edit">Cancel</button>
+                        <button type="button" class="delete-row" aria-label="Remove session">
+                            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="3 6 5 6 21 6" />
+                                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                                <path d="M10 11v6" />
+                                <path d="M14 11v6" />
+                                <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+                            </svg>
+                            <span>Remove</span>
+                        </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div id="sheet" class="sheet" hidden>
+        <button type="button" class="sheet-backdrop" id="sheet-backdrop" tabindex="-1" aria-label="Close"></button>
+        <div class="sheet-panel" role="dialog" aria-modal="true" aria-labelledby="sheet-title">
+            <form id="sheet-form" class="sheet-content" novalidate>
+                <div class="sheet-head">
+                    <h2 id="sheet-title" class="sheet-title">Create account to purchase</h2>
+                    <button type="button" id="sheet-close" class="sheet-close" aria-label="Close">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M18 6L6 18" />
+                            <path d="M6 6L18 18" />
+                        </svg>
+                    </button>
+                </div>
+                <div id="sheet-plan" class="sheet-plan" hidden></div>
+                <div class="sheet-step" data-step="email">
+                    <label class="sheet-label" for="sheet-email">Email</label>
+                    <input type="email" id="sheet-email" class="field" name="email" autocomplete="email"
+                        placeholder="you@school.org" required>
+                </div>
+                <div class="sheet-step" data-step="code" hidden>
+                    <label class="sheet-label" for="sheet-code">Confirmation code</label>
+                    <input type="text" id="sheet-code" class="field" name="code" inputmode="numeric" pattern="[0-9]*"
+                        autocomplete="one-time-code" maxlength="6">
+                    <p class="sheet-help">Enter the confirmation code that was just emailed to you.</p>
+                </div>
+                <p id="sheet-status" class="sheet-status" aria-live="polite"></p>
+                <button type="submit" id="sheet-submit" class="btn-primary">Continue</button>
+            </form>
+        </div>
+    </div>
+
+    <nav class="tab-bar" aria-label="Pages">
+        <a href="./index.html" class="tab">
+            <svg class="icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M6.66667 5H17.5" />
+                <path d="M6.66667 10H17.5" />
+                <path d="M6.66667 15H17.5" />
+                <path d="M2.5 5H2.51" />
+                <path d="M2.5 10H2.51" />
+                <path d="M2.5 15H2.51" />
+            </svg>
+            <span>Board</span>
+        </a>
+        <a href="./students.html" class="tab" aria-current="page">
+            <svg class="icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14.1667 17.5V15.8333C14.1667 14.9493 13.8155 14.1014 13.1904 13.4763C12.5652 12.8512 11.7174 12.5 10.8333 12.5H4.16667C3.28261 12.5 2.43477 12.8512 1.80964 13.4763C1.18452 14.1014 0.833333 14.9493 0.833333 15.8333V17.5" />
+                <path d="M7.5 9.16667C9.34095 9.16667 10.8333 7.67428 10.8333 5.83333C10.8333 3.99238 9.34095 2.5 7.5 2.5C5.65905 2.5 4.16667 3.99238 4.16667 5.83333C4.16667 7.67428 5.65905 9.16667 7.5 9.16667Z" />
+                <path d="M19.1667 17.5V15.8333C19.1661 15.0948 18.9203 14.3773 18.4678 13.7936C18.0153 13.2099 17.3818 12.793 16.6667 12.6083" />
+                <path d="M13.3333 2.60833C14.0503 2.79192 14.6859 3.20892 15.1397 3.79359C15.5935 4.37827 15.8399 5.09736 15.8399 5.8375C15.8399 6.57764 15.5935 7.29673 15.1397 7.88141C14.6859 8.46608 14.0503 8.88308 13.3333 9.06667" />
+            </svg>
+            <span>Students</span>
+        </a>
+        <a href="./account.html" class="tab">
+            <svg class="icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M10 12.5C11.3807 12.5 12.5 11.3807 12.5 10C12.5 8.61929 11.3807 7.5 10 7.5C8.61929 7.5 7.5 8.61929 7.5 10C7.5 11.3807 8.61929 12.5 10 12.5Z" />
+                <path d="M16.1667 12.5C16.0557 12.7513 16.0226 13.0302 16.0717 13.3005C16.1207 13.5708 16.2496 13.8203 16.4417 14.0167L16.4917 14.0667C16.6466 14.2215 16.7696 14.4053 16.8534 14.6076C16.9373 14.8099 16.9805 15.0268 16.9805 15.2458C16.9805 15.4649 16.9373 15.6817 16.8534 15.8841C16.7696 16.0864 16.6466 16.2702 16.4917 16.425C16.3369 16.58 16.1531 16.7029 15.9507 16.7868C15.7484 16.8706 15.5315 16.9138 15.3125 16.9138C15.0935 16.9138 14.8766 16.8706 14.6743 16.7868C14.4719 16.7029 14.2881 16.58 14.1333 16.425L14.0833 16.375C13.8869 16.1829 13.6375 16.054 13.3672 16.005C13.0968 15.956 12.818 15.9891 12.5667 16.1C12.3202 16.2056 12.11 16.381 11.9619 16.6046C11.8139 16.8282 11.7344 17.0902 11.7333 17.3583V17.5C11.7333 17.942 11.5577 18.366 11.2452 18.6785C10.9326 18.9911 10.5087 19.1667 10.0667 19.1667C9.62464 19.1667 9.20072 18.9911 8.88816 18.6785C8.5756 18.366 8.4 17.942 8.4 17.5V17.425C8.39355 17.1492 8.30427 16.8817 8.14376 16.6573C7.98325 16.4328 7.75895 16.2619 7.5 16.1667C7.24865 16.0557 6.96984 16.0226 6.69951 16.0717C6.42918 16.1207 6.17973 16.2496 5.98333 16.4417L5.93333 16.4917C5.77855 16.6466 5.59473 16.7696 5.3924 16.8534C5.19007 16.9373 4.97319 16.9805 4.75417 16.9805C4.53514 16.9805 4.31826 16.9373 4.11593 16.8534C3.9136 16.7696 3.72979 16.6466 3.575 16.4917C3.42004 16.3369 3.29711 16.1531 3.21323 15.9507C3.12936 15.7484 3.08619 15.5315 3.08619 15.3125C3.08619 15.0935 3.12936 14.8766 3.21323 14.6743C3.29711 14.4719 3.42004 14.2881 3.575 14.1333L3.625 14.0833C3.81711 13.8869 3.94599 13.6375 3.995 13.3672C4.04402 13.0968 4.01093 12.818 3.9 12.5667C3.79436 12.3202 3.61896 12.11 3.39539 11.9619C3.17181 11.8139 2.90982 11.7344 2.64167 11.7333H2.5C2.05797 11.7333 1.63405 11.5577 1.32149 11.2452C1.00893 10.9326 0.833333 10.5087 0.833333 10.0667C0.833333 9.62464 1.00893 9.20072 1.32149 8.88816C1.63405 8.5756 2.05797 8.4 2.5 8.4H2.575C2.85083 8.39355 3.11834 8.30427 3.34275 8.14376C3.56716 7.98325 3.7381 7.75895 3.83333 7.5C3.94426 7.24865 3.97735 6.96984 3.92834 6.69951C3.87932 6.42918 3.75045 6.17973 3.55833 5.98333L3.50833 5.93333C3.35337 5.77855 3.23044 5.59473 3.14657 5.3924C3.06269 5.19007 3.01952 4.97319 3.01952 4.75417C3.01952 4.53514 3.06269 4.31826 3.14657 4.11593C3.23044 3.9136 3.35337 3.72979 3.50833 3.575C3.66312 3.42004 3.84694 3.29711 4.04927 3.21323C4.2516 3.12936 4.46847 3.08619 4.6875 3.08619C4.90653 3.08619 5.1234 3.12936 5.32573 3.21323C5.52806 3.29711 5.71188 3.42004 5.86667 3.575L5.91667 3.625C6.11307 3.81711 6.36251 3.94599 6.63284 3.995C6.90317 4.04402 7.18199 4.01093 7.43333 3.9H7.5C7.74648 3.79436 7.95668 3.61896 8.10474 3.39539C8.25281 3.17181 8.33226 2.90982 8.33333 2.64167V2.5C8.33333 2.05797 8.50893 1.63405 8.82149 1.32149C9.13405 1.00893 9.55797 0.833333 10 0.833333C10.442 0.833333 10.866 1.00893 11.1785 1.32149C11.4911 1.63405 11.6667 2.05797 11.6667 2.5V2.575C11.6677 2.84316 11.7472 3.10515 11.8953 3.32872C12.0433 3.5523 12.2535 3.7277 12.5 3.83333C12.7513 3.94426 13.0302 3.97735 13.3005 3.92834C13.5708 3.87932 13.8203 3.75045 14.0167 3.55833L14.0667 3.50833C14.2215 3.35337 14.4053 3.23044 14.6076 3.14657C14.8099 3.06269 15.0268 3.01952 15.2458 3.01952C15.4649 3.01952 15.6817 3.06269 15.8841 3.14657C16.0864 3.23044 16.2702 3.35337 16.425 3.50833C16.58 3.66312 16.7029 3.84694 16.7868 4.04927C16.8706 4.2516 16.9138 4.46847 16.9138 4.6875C16.9138 4.90653 16.8706 5.1234 16.7868 5.32573C16.7029 5.52806 16.58 5.71188 16.425 5.86667L16.375 5.91667C16.1829 6.11307 16.054 6.36251 16.005 6.63284C15.956 6.90317 15.9891 7.18199 16.1 7.43333V7.5C16.2056 7.74648 16.381 7.95668 16.6046 8.10474C16.8282 8.25281 17.0902 8.33226 17.3583 8.33333H17.5C17.942 8.33333 18.366 8.50893 18.6785 8.82149C18.9911 9.13405 19.1667 9.55797 19.1667 10C19.1667 10.442 18.9911 10.866 18.6785 11.1785C18.366 11.4911 17.942 11.6667 17.5 11.6667H17.425C17.1568 11.6677 16.8949 11.7472 16.6713 11.8953C16.4477 12.0433 16.2723 12.2535 16.1667 12.5Z" />
+            </svg>
+            <span>Account</span>
+        </a>
+    </nav>
+
+
+    <script src="./store.js"></script>
+    <script src="./billing.js"></script>
+    <script src="./account.js"></script>
+    <script src="./sync.js"></script>
+    <script src="./swipe.js"></script>
+    <script src="./sheet.js"></script>
+    <script src="./students.js"></script>
+</body>
+
+</html>
