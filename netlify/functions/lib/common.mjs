@@ -91,6 +91,7 @@ export function stores(context) {
         rosters: open('rosters'),
         accounts: open('accounts'),
         codes: open('auth-codes'),
+        coupons: open('coupons'),
     };
 }
 
@@ -281,6 +282,67 @@ export async function assertPremium(auth, s) {
     auth.account.premium = { active, checkedAt: Date.now() };
     auth.etag = (await saveAccount(auth.account, s, auth.etag)) || auth.etag;
     if (!active) throw fail(402, 'Sync needs an active Speech Count Pro purchase');
+}
+
+// Coupons grant a RevenueCat promotional entitlement directly, so the usual
+// paywall, offline cache, and assertPremium above all pick it up with no
+// other code path. Records are created out of band (netlify blobs:set
+// coupons code:XYZ '{"grant":"lifetime","maxRedemptions":1}') and looked up
+// by the code itself, unlike auth codes: a coupon is meant to be shared, not
+// kept secret.
+const GRANT_DURATIONS = new Set(['daily', 'three_day', 'weekly', 'monthly', 'two_month', 'three_month', 'six_month', 'yearly', 'lifetime']);
+
+function couponKey(code) {
+    const trimmed = String(code || '').trim().toUpperCase().slice(0, 40);
+    return trimmed ? 'code:' + trimmed : null;
+}
+
+async function grantPromotionalEntitlement(userId, duration) {
+    const key = env('RC_SECRET_KEY');
+    let response;
+    try {
+        response = await fetchWithTimeout(
+            `https://api.revenuecat.com/v1/subscribers/${encodeURIComponent(userId)}/entitlements/${ENTITLEMENT}/promotional`,
+            {
+                method: 'POST',
+                headers: { Authorization: `Bearer ${key}`, Accept: 'application/json', 'Content-Type': 'application/json' },
+                body: JSON.stringify({ duration }),
+            },
+        );
+    } catch (err) {
+        throw fail(502, 'Could not apply that code right now');
+    }
+    if (!response.ok) {
+        console.error('RevenueCat error', response.status);
+        throw fail(502, 'Could not apply that code right now');
+    }
+}
+
+// Grants the entitlement, then records the redemption with a conditional
+// write so the same code can't be double-counted by two requests at once. A
+// user who already redeemed this code is refused even if maxRedemptions
+// hasn't been hit, so nobody can stack a single-use code on one account.
+export async function redeemCoupon(userId, code, { coupons }) {
+    const key = couponKey(code);
+    if (!key) throw fail(400, 'Enter a code');
+    for (let attempt = 0; attempt < WRITE_RETRIES; attempt += 1) {
+        const found = await coupons.getWithMetadata(key, { type: 'json' });
+        const record = found && found.data;
+        if (!record || record.disabled) throw fail(404, "That code isn't valid");
+        if (!GRANT_DURATIONS.has(record.grant)) throw fail(500, 'That code is misconfigured');
+        if (record.expiresAt && record.expiresAt < Date.now()) throw fail(410, 'That code has expired');
+        const redeemedBy = record.redeemedBy || {};
+        if (redeemedBy[userId]) throw fail(409, "You've already redeemed this code");
+        const uses = Object.keys(redeemedBy).length;
+        if (record.maxRedemptions && uses >= record.maxRedemptions) throw fail(410, 'That code has already been fully redeemed');
+        await grantPromotionalEntitlement(userId, record.grant);
+        const next = { ...record, redeemedBy: { ...redeemedBy, [userId]: Date.now() } };
+        const { modified } = await coupons.setJSON(key, next, { onlyIfMatch: found.etag });
+        if (modified) return record.grant;
+        // Lost the race to another redemption of the same code; the grant
+        // above already went through, so just retry to record it.
+    }
+    throw fail(503, 'Could not redeem that code right now. Try again');
 }
 
 // True when the customer has a subscription that is still set to renew. A

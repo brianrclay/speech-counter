@@ -25,6 +25,7 @@ async function sendEmail(email, code) {
             }),
         });
     } catch (err) {
+        console.error('Resend request failed', err && err.name, err && err.message);
         throw fail(502, 'Could not send the email right now. Try again in a minute');
     }
     if (!response.ok) {
