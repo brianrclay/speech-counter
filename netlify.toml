@@ -8,6 +8,19 @@
 [functions]
   directory = "netlify/functions"
 
+# The site's default Netlify subdomain is retired: speechcount.com is the only
+# public URL. Anything still reaching the old host is sent to the same path on
+# the real domain, because the app treats every *.netlify.app host as staging
+# (see billing.js and account.js) and so ran checkout against the RevenueCat
+# sandbox key there. Preview and branch deploys keep their own
+# <name>--speech-counter.netlify.app hosts and are untouched by this exact-host
+# rule.
+[[redirects]]
+  from = "https://speech-counter.netlify.app/*"
+  to = "https://speechcount.com/:splat"
+  status = 301
+  force = true
+
 [[headers]]
   for = "/assets/*"
   [headers.values]
