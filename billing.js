@@ -41,12 +41,23 @@
         return Number.isNaN(date.getTime()) ? null : date.toISOString();
     }
 
+    // A promotional grant (coupon) with "lifetime" duration comes back from
+    // RevenueCat with an expiry two centuries out; treat that as no expiry.
+    const FOREVER_MS = 50 * 365 * 24 * 60 * 60 * 1000;
+
+    function expiry(value) {
+        const date = iso(value);
+        return date && new Date(date).getTime() - Date.now() > FOREVER_MS ? null : date;
+    }
+
     function toEntitlement(info) {
         const active = info && info.entitlements && info.entitlements.active && info.entitlements.active[ENTITLEMENT];
+        const productId = active ? active.productIdentifier || null : null;
         return {
             active: Boolean(active && active.isActive !== false),
-            productId: active ? active.productIdentifier || null : null,
-            expiresAt: active ? iso(active.expirationDate) : null,
+            productId,
+            promo: /^rc_promo_/.test(productId || ''),
+            expiresAt: active ? expiry(active.expirationDate) : null,
             willRenew: Boolean(active && active.willRenew),
             billingIssueAt: active ? iso(active.billingIssueDetectedAt) : null,
             managementURL: (info && info.managementURL) || null,

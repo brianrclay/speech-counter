@@ -371,22 +371,31 @@
     }
 
     let shownPremium = null;
-    let celebrating = false;
+    // null, or which of CELEBRATIONS to show instead of the list.
+    let celebrating = null;
+
+    const CELEBRATIONS = {
+        purchase: { title: 'Purchase completed', lead: "We've emailed you a receipt. Happy counting!" },
+        coupon: { title: "You're all set", lead: 'Your code unlocked Speech Count Pro. Happy counting!' },
+    };
 
     function showRoute(match) {
         const premium = store.entitlements.isPremium();
         shownPremium = premium;
         purchaseDone.hidden = !celebrating;
-        tabBar.hidden = celebrating;
-        document.body.classList.toggle('celebrating', celebrating);
-        appHeader.hidden = celebrating;
-        paywall.hidden = premium || celebrating;
+        tabBar.hidden = Boolean(celebrating);
+        document.body.classList.toggle('celebrating', Boolean(celebrating));
+        appHeader.hidden = Boolean(celebrating);
+        paywall.hidden = premium || Boolean(celebrating);
         appActions.hidden = !premium;
         if (celebrating) {
+            const copy = CELEBRATIONS[celebrating];
             currentId = null;
             detailView.hidden = true;
             listView.hidden = true;
-            document.title = 'Purchase completed - Speech Count';
+            purchaseDone.querySelector('.purchase-done-title').textContent = copy.title;
+            purchaseDone.querySelector('.purchase-done-lead').textContent = copy.lead;
+            document.title = copy.title + ' - Speech Count';
             window.scrollTo(0, 0);
             purchaseDone.querySelector('.purchase-done-title').focus();
             return;
@@ -766,7 +775,7 @@
         try {
             const entitlement = await billing.purchase(pkg);
             if (entitlement && entitlement.active) {
-                celebrating = true;
+                celebrating = 'purchase';
                 route();
             } else if (entitlement) {
                 setPaywallStatus("The purchase went through but isn't active yet. Try Restore purchases in a moment.");
@@ -794,7 +803,7 @@
     buyBtn.addEventListener('click', () => buy(selectedPackage));
 
     purchaseFinish.addEventListener('click', () => {
-        celebrating = false;
+        celebrating = null;
         route();
     });
 
@@ -860,6 +869,7 @@
                 setPaywallStatus('');
                 couponInput.value = '';
                 couponForm.hidden = true;
+                celebrating = 'coupon';
                 route();
             } else {
                 setPaywallStatus('Code applied, but Pro is not showing yet. Try again in a moment.');
