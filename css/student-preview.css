@@ -108,4 +108,16 @@ html:has(#paywall:not([hidden])) {
 .pro-purchase-dock .plan-note > span:not(:first-child) { display: none; }
 .pro-purchase-dock .plan:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
-.pro-purchase-dock #buy { min-height: 44px; padding: 11px 14px; font-size: 14px; }
+.pro-purchase-dock .btn-primary { min-height: 44px; padding: 11px 14px; font-size: 14px; }
+
+.pro-inline-purchase { display: grid; gap: 16px; }
+.pro-purchase-dock { transition: transform 220ms ease, opacity 180ms ease, visibility 220ms; }
+.pro-purchase-dock.is-offscreen {
+  transform: translateY(calc(100% + var(--tab-bar-height) + var(--tab-bar-inset) + 24px + env(safe-area-inset-bottom)));
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+@media(prefers-reduced-motion: reduce) {
+  .pro-purchase-dock { transition: none; }
+}

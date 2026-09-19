@@ -118,7 +118,7 @@
             </section>
             <div class="pro-plan-heading"><h3>A home for every student’s progress.</h3><p>Every Pro feature included in both plans.</p></div>
 
-            <div class="pro-purchase-dock">
+            <div class="pro-inline-purchase" id="pro-inline-purchase">
                 <div class="plans" role="radiogroup" aria-label="Choose a plan">
                     <button type="button" class="plan" role="radio" aria-checked="true" data-package="lifetime">
                         <span class="plan-radio" aria-hidden="true"></span>
@@ -146,6 +146,35 @@
                     <span id="buy-price">$19.99</span>
                 </button>
                 <p id="paywall-status" class="paywall-status" aria-live="polite"></p>
+            </div>
+            <div class="pro-purchase-dock">
+                <div class="plans" role="radiogroup" aria-label="Choose a plan in the sticky purchase bar">
+                    <button type="button" class="plan" role="radio" aria-checked="true" data-package="lifetime">
+                        <span class="plan-radio" aria-hidden="true"></span>
+                        <span class="plan-body">
+                            <span class="plan-row">
+                                <span class="plan-name">Lifetime</span>
+                                <span class="plan-price" data-price="lifetime">$19.99</span>
+                            </span>
+                            <span class="plan-note"><span>One-time purchase</span><span aria-hidden="true">&bull;</span><span>Includes every feature</span></span>
+                        </span>
+                    </button>
+                    <button type="button" class="plan" role="radio" aria-checked="false" data-package="monthly">
+                        <span class="plan-radio" aria-hidden="true"></span>
+                        <span class="plan-body">
+                            <span class="plan-row">
+                                <span class="plan-name">Monthly</span>
+                                <span class="plan-price" data-price="monthly">$2.99/mo</span>
+                            </span>
+                            <span class="plan-note"><span>Renews monthly</span><span aria-hidden="true">&bull;</span><span>Cancel anytime</span></span>
+                        </span>
+                    </button>
+                </div>
+                <button type="button" id="sticky-buy" class="btn-primary">
+                    <span class="buy-label" id="sticky-buy-label">Purchase lifetime</span>
+                    <span id="sticky-buy-price">$19.99</span>
+                </button>
+                <p id="sticky-paywall-status" class="paywall-status" aria-live="polite"></p>
             </div>
             <p id="paywall-export" class="paywall-export" hidden>
                 <span id="paywall-export-count"></span> saved on this device.

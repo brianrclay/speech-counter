@@ -22,6 +22,7 @@
     const paywallExportBtn = document.getElementById('paywall-export-btn');
     const storageBanner = document.getElementById('storage-banner');
     const buyBtn = document.getElementById('buy');
+    const buyButtons = [buyBtn, document.getElementById('sticky-buy')];
     const buyLabel = document.getElementById('buy-label');
     const buyPrice = document.getElementById('buy-price');
     const purchaseDone = document.getElementById('purchase-done');
@@ -713,6 +714,7 @@
 
     function setPaywallStatus(text) {
         paywallStatus.textContent = text || '';
+        document.getElementById('sticky-paywall-status').textContent = text || '';
     }
 
     function priceFor(packageId) {
@@ -729,6 +731,8 @@
         });
         buyLabel.textContent = BUY_LABELS[packageId] || 'Purchase';
         buyPrice.textContent = priceFor(packageId);
+        document.getElementById('sticky-buy-label').textContent = buyLabel.textContent;
+        document.getElementById('sticky-buy-price').textContent = buyPrice.textContent;
     }
 
     function renderPaywall() {
@@ -746,8 +750,9 @@
         billing.offerings().then((packages) => {
             offerings = packages;
             packages.forEach((pkg) => {
-                const price = document.querySelector('[data-price="' + pkg.id + '"]');
-                if (price && pkg.price) price.textContent = pkg.price + (pkg.id === 'monthly' ? '/mo' : '');
+                document.querySelectorAll('[data-price="' + pkg.id + '"]').forEach((price) => {
+                    if (pkg.price) price.textContent = pkg.price + (pkg.id === 'monthly' ? '/mo' : '');
+                });
             });
             selectPlan(selectedPackage);
             restoreBtn.hidden = !billing.canRestore();
@@ -773,7 +778,7 @@
             return;
         }
         setPaywallStatus('');
-        buyBtn.disabled = true;
+        buyButtons.forEach((button) => { button.disabled = true; });
         planButtons.forEach((b) => { b.disabled = true; });
         try {
             const entitlement = await billing.purchase(pkg);
@@ -786,24 +791,25 @@
         } catch (err) {
             setPaywallStatus(err.message || 'The purchase could not be completed.');
         } finally {
-            buyBtn.disabled = false;
+            buyButtons.forEach((button) => { button.disabled = false; });
             planButtons.forEach((b) => { b.disabled = false; });
         }
     }
 
-    planButtons.forEach((button, index) => {
+    planButtons.forEach((button) => {
         button.addEventListener('click', () => selectPlan(button.dataset.package));
         button.addEventListener('keydown', (event) => {
             const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[event.key];
             if (!step) return;
             event.preventDefault();
-            const next = planButtons[(index + step + planButtons.length) % planButtons.length];
+            const group = [...button.closest('.plans').querySelectorAll('.plan')];
+            const next = group[(group.indexOf(button) + step + group.length) % group.length];
             selectPlan(next.dataset.package);
             next.focus();
         });
     });
 
-    buyBtn.addEventListener('click', () => buy(selectedPackage));
+    buyButtons.forEach((button) => button.addEventListener('click', () => buy(selectedPackage)));
 
     purchaseFinish.addEventListener('click', () => {
         celebrating = null;
@@ -980,4 +986,34 @@
         document.getElementById('paywall').style.setProperty('--purchase-dock-height', value);
         document.documentElement.style.setProperty('--purchase-dock-height', value);
     }).observe(dock);
+})();
+
+// Yield to the in-page purchase section whenever it enters the usable viewport.
+(() => {
+    const dock = document.querySelector('.pro-purchase-dock');
+    const inline = document.getElementById('pro-inline-purchase');
+    const tabs = document.querySelector('.tab-bar');
+    let frame;
+    function update() {
+        const rect = inline.getBoundingClientRect();
+        const visible = rect.height > 0 && rect.top < tabs.getBoundingClientRect().top - 12 && rect.bottom > 0;
+        if (visible && dock.contains(document.activeElement)) {
+            const active = document.activeElement;
+            const target = active.dataset.package
+                ? inline.querySelector(`[data-package="${active.dataset.package}"]`)
+                : document.getElementById('buy');
+            target.focus({ preventScroll: true });
+        }
+        dock.classList.toggle('is-offscreen', visible);
+        dock.inert = visible;
+        dock.setAttribute('aria-hidden', String(visible));
+    }
+    function schedule() {
+        cancelAnimationFrame(frame);
+        frame = requestAnimationFrame(update);
+    }
+    window.addEventListener('scroll', schedule, { passive: true });
+    window.addEventListener('resize', schedule);
+    new ResizeObserver(schedule).observe(document.getElementById('paywall'));
+    update();
 })();
