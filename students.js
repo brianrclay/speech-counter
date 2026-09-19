@@ -11,6 +11,10 @@
     const paywallStatus = document.getElementById('paywall-status');
     const paywallSigninToggle = document.getElementById('paywall-signin-toggle');
     const restoreBtn = document.getElementById('restore-purchases');
+    const couponToggle = document.getElementById('paywall-coupon-toggle');
+    const couponForm = document.getElementById('paywall-coupon-form');
+    const couponInput = document.getElementById('paywall-coupon-input');
+    const couponSubmit = couponForm.querySelector('button');
     const planButtons = [...document.querySelectorAll('.plan[data-package]')];
     const paywallExport = document.getElementById('paywall-export');
     const paywallExportCount = document.getElementById('paywall-export-count');
@@ -820,6 +824,49 @@
             }
         } catch (err) {
             setPaywallStatus(err.message || "Couldn't restore purchases right now.");
+        }
+    });
+
+    // Redeeming a coupon calls our server, which grants the RevenueCat
+    // entitlement directly - so it needs the same signed-in account a code
+    // was issued against, on every platform, not just the web.
+    couponToggle.addEventListener('click', () => {
+        if (couponForm.hidden && !account.session()) {
+            window.SpeechSheet.open({
+                title: 'Sign in',
+                onSignedIn: () => {
+                    couponForm.hidden = false;
+                    couponInput.focus();
+                },
+            });
+            return;
+        }
+        couponForm.hidden = !couponForm.hidden;
+        if (!couponForm.hidden) couponInput.focus();
+    });
+
+    couponForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const code = couponInput.value.trim();
+        const session = account.session();
+        if (!code || !session) return;
+        setPaywallStatus('Checking your code...');
+        couponSubmit.disabled = true;
+        try {
+            await account.call('/api/redeem-code', { code }, session.token);
+            await billing.refresh();
+            if (store.entitlements.isPremium()) {
+                billing.track('redeem_code', { platform: billing.platform() });
+                couponInput.value = '';
+                couponForm.hidden = true;
+                route();
+            } else {
+                setPaywallStatus('Code applied, but Pro is not showing yet. Try again in a moment.');
+            }
+        } catch (err) {
+            setPaywallStatus(err.message || "That code didn't work.");
+        } finally {
+            couponSubmit.disabled = false;
         }
     });
 

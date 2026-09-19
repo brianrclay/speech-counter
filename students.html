@@ -143,7 +143,13 @@
             <p class="paywall-links">
                 <button type="button" id="restore-purchases" class="link-btn" hidden>Restore purchases</button>
                 <button type="button" id="paywall-signin-toggle" class="link-btn">Already purchased? Sign in</button>
+                <button type="button" id="paywall-coupon-toggle" class="link-btn">Have a code?</button>
             </p>
+            <form id="paywall-coupon-form" class="signin-row" hidden>
+                <input type="text" id="paywall-coupon-input" class="signin-input" placeholder="Enter code"
+                    autocapitalize="characters" autocomplete="off" autocorrect="off" spellcheck="false" maxlength="40">
+                <button type="submit" class="add-btn">Apply</button>
+            </form>
             <p class="paywall-fine">
                 Monthly renews automatically until cancelled in your store account. Payment is charged
                 to your App Store, Google Play, or card at purchase. Lifetime is a one-time purchase for
