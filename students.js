@@ -857,6 +857,7 @@
             await billing.refresh();
             if (store.entitlements.isPremium()) {
                 billing.track('redeem_code', { platform: billing.platform() });
+                setPaywallStatus('');
                 couponInput.value = '';
                 couponForm.hidden = true;
                 route();
