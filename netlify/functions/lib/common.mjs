@@ -347,7 +347,7 @@ export async function redeemCoupon(userId, code, { coupons }) {
 
 // True when the customer has a subscription that is still set to renew. A
 // cancelled-but-not-yet-expired subscription doesn't count; neither does a
-// lifetime purchase.
+// lifetime purchase or a promotional grant, which RevenueCat also lists here.
 export async function hasRenewingSubscription(userId) {
     const key = env('RC_SECRET_KEY');
     let response;
@@ -366,7 +366,7 @@ export async function hasRenewingSubscription(userId) {
     const data = await response.json();
     const subscriptions = (data.subscriber && data.subscriber.subscriptions) || {};
     const now = Date.now();
-    return Object.values(subscriptions).some((sub) => sub && sub.expires_date
+    return Object.values(subscriptions).some((sub) => sub && sub.expires_date && sub.store !== 'promotional'
         && new Date(sub.expires_date).getTime() > now && !sub.unsubscribe_detected_at);
 }
 

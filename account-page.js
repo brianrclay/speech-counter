@@ -72,7 +72,7 @@
         } else if (!entitlement.expiresAt) {
             planStatus.textContent = 'Active';
             planStatus.classList.add('active');
-            planMeta.textContent = ['Lifetime', price].filter(Boolean).join(' \u2022 ');
+            planMeta.textContent = entitlement.promo ? '' : ['Lifetime', price].filter(Boolean).join(' \u2022 ');
         } else if (entitlement.willRenew) {
             planStatus.textContent = 'Active';
             planStatus.classList.add('active');
@@ -82,6 +82,7 @@
             planMeta.textContent = ['Expires on ' + dateFormat.format(new Date(entitlement.expiresAt)), price].filter(Boolean).join(' \u2022 ');
             manageSubscriptionLabel.textContent = 'Resubscribe';
         }
+        planMeta.hidden = !planMeta.textContent;
         manageSubscription.hidden = !(premium && entitlement.managementURL);
         if (entitlement.managementURL) manageSubscription.href = entitlement.managementURL;
         planCta.hidden = premium;
