@@ -117,12 +117,21 @@
         });
     });
 
+    // Logging out removes the roster from this device; it lives in the
+    // account and comes back on the next login. Anything not yet synced is
+    // pushed first, and only if that fails does the user get a second ask.
     signoutBtn.addEventListener('click', async () => {
         const session = account.session();
-        if (!session || !confirm('Log out of ' + session.email + '? Your roster stays on this device.')) return;
-        const removeLocal = confirm('Also remove the roster from this device?\n\nChoose OK on a shared device. Your roster stays in your account.');
-        await account.signOut({ removeLocal });
-        render();
+        if (!session || !confirm('Log out of ' + session.email + '? Your roster stays in your account and comes back when you log in.')) return;
+        signoutBtn.disabled = true;
+        try {
+            await window.SpeechSync.flush();
+            if (store.hasPending() && !confirm("Some changes haven't synced yet and will be lost if you log out now. Log out anyway?")) return;
+            await account.signOut({ removeLocal: true });
+            render();
+        } finally {
+            signoutBtn.disabled = false;
+        }
     });
 
     deleteBtn.addEventListener('click', async () => {

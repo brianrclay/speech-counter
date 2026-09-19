@@ -30,6 +30,7 @@
     let generation = 0;
     let controller = null;
     let failures = 0;
+    let current = null;
 
     function setStatus(next, err) {
         status = next;
@@ -114,6 +115,8 @@
         controller = new AbortController();
         setStatus('syncing');
         const session = store.session.get();
+        let finish;
+        current = new Promise((resolve) => { finish = resolve; });
         try {
             await exchange(session, controller.signal, gen);
             if (gen !== generation) return;
@@ -142,7 +145,21 @@
                     schedule(500);
                 }
             }
+            finish();
         }
+    }
+
+    // Push whatever is pending right now and wait for the round to finish;
+    // used before logging out so nothing unsynced is thrown away.
+    async function flush() {
+        if (!eligible()) return;
+        clearTimeout(timer);
+        if (inFlight) {
+            await current;
+            if (store.hasPending()) await run();
+            return;
+        }
+        await run();
     }
 
     function onPersist(name) {
@@ -218,6 +235,7 @@
     window.SpeechSync = {
         start,
         stop,
+        flush,
         now: () => schedule(0),
         status: () => ({ status, error: lastError, state: store.syncState.get() }),
     };
