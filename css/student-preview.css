@@ -50,7 +50,7 @@
 
 /* Keep checkout above the persistent tabs, including the device safe area. */
 .paywall {
-  --purchase-dock-height: 160px;
+  --purchase-dock-height: 112px;
   padding-bottom: calc(var(--purchase-dock-height) + 12px);
 }
 .pro-purchase-dock {
@@ -61,9 +61,9 @@
   bottom: calc(var(--tab-bar-inset) + var(--tab-bar-height) + 12px + env(safe-area-inset-bottom));
   max-width: calc(var(--page-max) - var(--tab-bar-inset) * 2);
   margin: 0 auto;
-  padding: 10px;
+  padding: 8px;
   border: 1px solid var(--border);
-  border-radius: 22px;
+  border-radius: 18px;
   background: var(--surface);
   box-shadow: var(--shadow-md);
 }
@@ -73,20 +73,22 @@
   line-height: 1.5;
 }
 html:has(#paywall:not([hidden])) {
-  scroll-padding-bottom: calc(var(--purchase-dock-height, 160px) + var(--tab-bar-height) + var(--tab-bar-inset) + 36px + env(safe-area-inset-bottom));
+  scroll-padding-bottom: calc(var(--purchase-dock-height, 112px) + var(--tab-bar-height) + var(--tab-bar-inset) + 36px + env(safe-area-inset-bottom));
 }
 
 /* One shared plan selector keeps store prices and checkout in sync. */
 .pro-purchase-dock .plans {
   gap: 4px;
-  padding: 4px;
-  margin-bottom: 10px;
+  padding: 2px;
+  margin-bottom: 6px;
   border: 1px solid var(--border);
   border-radius: 14px;
   background: var(--bg);
 }
 .pro-purchase-dock .plan {
-  padding: 9px 8px;
+  padding: 8px 6px;
+  min-height: 44px;
+  align-items: center;
   border-color: transparent;
   border-radius: 10px;
   background: transparent;
@@ -97,11 +99,13 @@ html:has(#paywall:not([hidden])) {
   background: var(--accent-soft);
 }
 .pro-purchase-dock .plan-body { gap: 4px; }
-.pro-purchase-dock .plan-row { gap: 4px; }
-.pro-purchase-dock .plan-name { font-size: 12px; }
-.pro-purchase-dock .plan-price { font-size: 16px; }
-.pro-purchase-dock .plan-radio { width: 14px; height: 14px; }
+.pro-purchase-dock .plan-row { flex-direction: row; align-items: center; justify-content: center; flex-wrap: wrap; gap: 4px 6px; }
+.pro-purchase-dock .plan-name { flex: 0 1 auto; font-size: 12px; }
+.pro-purchase-dock .plan-price { font-size: 13px; }
+.pro-purchase-dock .plan-radio { display: none; }
 .pro-purchase-dock .plan-radio::after { inset: 2px; }
-.pro-purchase-dock .plan-note { font-size: 10px; }
+.pro-purchase-dock .plan-note { display: none; }
 .pro-purchase-dock .plan-note > span:not(:first-child) { display: none; }
 .pro-purchase-dock .plan:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.pro-purchase-dock #buy { min-height: 44px; padding: 11px 14px; font-size: 14px; }
