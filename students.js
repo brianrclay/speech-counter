@@ -723,7 +723,9 @@
     function selectPlan(packageId) {
         selectedPackage = packageId;
         planButtons.forEach((button) => {
-            button.setAttribute('aria-checked', button.dataset.package === packageId ? 'true' : 'false');
+            const selected = button.dataset.package === packageId;
+            button.setAttribute('aria-checked', selected ? 'true' : 'false');
+            button.tabIndex = selected ? 0 : -1;
         });
         buyLabel.textContent = BUY_LABELS[packageId] || 'Purchase';
         buyPrice.textContent = priceFor(packageId);
@@ -915,4 +917,67 @@
         route();
         billing.refresh().catch(() => {});
     });
+})();
+
+// Native scrolling supports touch, trackpads, and a usable no-JS fallback.
+(() => {
+    const track = document.getElementById('pro-feature-track');
+    if (!track) return;
+    const cards = [...track.querySelectorAll('.pro-feature-card')];
+    const controls = document.querySelector('.pro-carousel-controls');
+    const previous = controls.querySelector('[data-feature-direction="-1"]');
+    const next = controls.querySelector('[data-feature-direction="1"]');
+    const position = document.getElementById('pro-feature-position');
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    let active = 0;
+    let frame;
+
+    function offsets() {
+        const start = cards[0].getBoundingClientRect().left;
+        const maximum = track.scrollWidth - track.clientWidth;
+        return cards.map((card) => Math.min(maximum, card.getBoundingClientRect().left - start));
+    }
+
+    function update() {
+        if (!track.clientWidth) return;
+        const positions = offsets();
+        active = positions.reduce((best, offset, index) =>
+            Math.abs(offset - track.scrollLeft) < Math.abs(positions[best] - track.scrollLeft) ? index : best, 0);
+        position.textContent = `${active + 1} / ${cards.length}`;
+        previous.disabled = active === 0;
+        next.disabled = active === cards.length - 1;
+    }
+
+    function go(index) {
+        active = Math.max(0, Math.min(cards.length - 1, index));
+        track.scrollTo({ left: offsets()[active], behavior: reducedMotion.matches ? 'instant' : 'smooth' });
+    }
+
+    previous.addEventListener('click', () => go(active - 1));
+    next.addEventListener('click', () => go(active + 1));
+    track.addEventListener('keydown', (event) => {
+        if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+        event.preventDefault();
+        go(event.key === 'Home' ? 0 : event.key === 'End' ? cards.length - 1 : active + (event.key === 'ArrowRight' ? 1 : -1));
+    });
+    track.addEventListener('scroll', () => {
+        cancelAnimationFrame(frame);
+        frame = requestAnimationFrame(update);
+    }, { passive: true });
+    new ResizeObserver(update).observe(track);
+    controls.hidden = false;
+    update();
+})();
+
+// Reserve the dock's actual height, including wrapped purchase errors or text.
+(() => {
+    const dock = document.querySelector('.pro-purchase-dock');
+    if (!dock) return;
+    new ResizeObserver(() => {
+        const height = dock.getBoundingClientRect().height;
+        if (!height) return;
+        const value = `${height}px`;
+        document.getElementById('paywall').style.setProperty('--purchase-dock-height', value);
+        document.documentElement.style.setProperty('--purchase-dock-height', value);
+    }).observe(dock);
 })();
