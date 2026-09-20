@@ -61,6 +61,23 @@
 
     const behind = [...document.querySelectorAll('main, header.app-header, nav.tab-bar')];
 
+    // The on-screen keyboard shrinks the visual viewport but not the layout
+    // viewport a fixed element is placed in, so on phones the keyboard would
+    // sit over the bottom of the panel. While open, the sheet tracks the
+    // visual viewport instead.
+    const viewport = window.visualViewport;
+
+    function fitViewport() {
+        if (sheet.hidden) return;
+        sheet.style.top = viewport.offsetTop + 'px';
+        sheet.style.height = viewport.height + 'px';
+    }
+
+    if (viewport) {
+        viewport.addEventListener('resize', fitViewport);
+        viewport.addEventListener('scroll', fitViewport);
+    }
+
     function open(options) {
         onSignedIn = options.onSignedIn || null;
         opener = document.activeElement;
@@ -76,6 +93,7 @@
         panel.style.height = '';
         showStep('email', false);
         sheet.hidden = false;
+        if (viewport) fitViewport();
         sheet.offsetHeight;
         sheet.classList.add('open');
         setTimeout(() => emailField.focus(), reducedMotion() ? 0 : 320);
@@ -87,6 +105,8 @@
         behind.forEach((el) => { el.inert = false; });
         const finish = () => {
             sheet.hidden = true;
+            sheet.style.top = '';
+            sheet.style.height = '';
             if (opener && opener.focus) opener.focus();
         };
         if (reducedMotion()) {

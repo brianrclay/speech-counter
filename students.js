@@ -15,6 +15,7 @@
     const couponForm = document.getElementById('paywall-coupon-form');
     const couponInput = document.getElementById('paywall-coupon-input');
     const couponSubmit = couponForm.querySelector('button');
+    const couponStatus = document.getElementById('paywall-coupon-status');
     const planButtons = [...document.querySelectorAll('.plan[data-package]')];
     const paywallExport = document.getElementById('paywall-export');
     const paywallExportCount = document.getElementById('paywall-export-count');
@@ -847,7 +848,12 @@
     // Redeeming a coupon calls our server, which grants the RevenueCat
     // entitlement directly - so it needs the same signed-in account a code
     // was issued against, on every platform, not just the web.
+    function setCouponStatus(text) {
+        couponStatus.textContent = text || '';
+    }
+
     couponToggle.addEventListener('click', () => {
+        setCouponStatus('');
         if (couponForm.hidden && !account.session()) {
             window.SpeechSheet.open({
                 title: 'Sign in',
@@ -866,24 +872,30 @@
         event.preventDefault();
         const code = couponInput.value.trim();
         const session = account.session();
-        if (!code || !session) return;
-        setPaywallStatus('Checking your code...');
+        if (!session) return;
+        if (!code) {
+            setCouponStatus('Enter a code.');
+            couponInput.focus();
+            return;
+        }
+        setCouponStatus('Checking your code...');
         couponSubmit.disabled = true;
         try {
             await account.call('/api/redeem-code', { code }, session.token);
             await billing.refresh();
             if (store.entitlements.isPremium()) {
                 billing.track('redeem_code', { platform: billing.platform() });
-                setPaywallStatus('');
+                setCouponStatus('');
                 couponInput.value = '';
                 couponForm.hidden = true;
                 celebrating = 'coupon';
                 route();
             } else {
-                setPaywallStatus('Code applied, but Pro is not showing yet. Try again in a moment.');
+                setCouponStatus('Code applied, but Pro is not showing yet. Try again in a moment.');
             }
         } catch (err) {
-            setPaywallStatus(err.message || "That code didn't work.");
+            setCouponStatus(err.message || "That code didn't work.");
+            couponInput.focus();
         } finally {
             couponSubmit.disabled = false;
         }
