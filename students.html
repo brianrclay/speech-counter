@@ -46,10 +46,11 @@
     <style>@view-transition { navigation: auto; }</style>
     <link href="./css/reset.css" rel="stylesheet">
     <link href="./css/style.css" rel="stylesheet">
+    <link href="./css/student-preview.css" rel="stylesheet">
 </head>
 
 <body class="students-page">
-    <header class="app-header">
+    <header class="app-header" hidden>
         <div class="app-header-inner">
             <h1 class="app-title">Students</h1>
             <div class="app-actions">
@@ -69,73 +70,112 @@
     <main class="page">
         <section id="paywall" class="paywall" hidden>
             <div class="paywall-hero">
-                <h2 class="paywall-title">Keep every student's progress</h2>
-                <p class="paywall-lead">
-                    Speech Count Pro turns the board into a record. Type a name, tap Correct or Incorrect, and
-                    the session is saved to that student automatically.
-                </p>
+                <span class="pro-eyebrow">Less admin. More connection.</span>
+                <h2 class="paywall-title">Every student.<br>A story of progress.</h2>
+                <p class="paywall-lead">Keep every name, target, and little win.<br>Pro remembers the details for you.</p>
             </div>
-            <h3 class="paywall-heading">Plans</h3>
-            <div class="plans" role="radiogroup" aria-label="Choose a plan">
-                <button type="button" class="plan" role="radio" aria-checked="true" data-package="lifetime">
-                    <span class="plan-radio" aria-hidden="true"></span>
-                    <span class="plan-body">
-                        <span class="plan-row">
-                            <span class="plan-name">Lifetime</span>
-                            <span class="plan-price" data-price="lifetime">$19.99</span>
+            <figure class="pro-spotlight">
+                <div class="pro-spotlight-art">
+                    <p class="pro-eyebrow">Your students. Their next steps.</p>
+                    <img class="pro-roster-image" src="./assets/pro/roster.svg" width="400" height="285" alt="Sample roster: Maya practices initial /s/ sentences, Oliver initial /r/ words, and Ava final /k/ phrases.">
+                    <img class="pro-session-image" src="./assets/pro/history.svg" width="400" height="240" alt="Maya’s saved initial /s/ sentences session: 18 correct, 2 incorrect, 90 percent correct.">
+                </div>
+                <figcaption>Product illustrations · Fictional student data</figcaption>
+            </figure>
+            <section class="pro-carousel" aria-label="Explore Speech Count Pro features" aria-roledescription="carousel">
+                <div class="pro-carousel-heading"><h3>Less busywork. More possibilities.</h3><span>Swipe to explore</span></div>
+                <div class="pro-feature-track" id="pro-feature-track" tabindex="0" aria-label="Feature cards. Use left and right arrow keys to browse.">
+                    <article class="pro-feature-card" role="group" aria-roledescription="slide" aria-label="1 of 6: Tally like always">
+                        <div class="pro-feature-image"><img src="./assets/pro/tally.svg" width="400" height="240" alt="Tally board showing Maya’s initial /s/ sentences target, 18 correct and 2 incorrect." loading="lazy"></div>
+                        <div class="pro-feature-copy"><span class="pro-feature-number" aria-hidden="true">1</span><h4>Tally like always</h4><p>Type a name and target, then tap Correct or Incorrect. Keep the counting flow you already know.</p></div>
+                    </article>
+                    <article class="pro-feature-card" role="group" aria-roledescription="slide" aria-label="2 of 6: Sessions save themselves">
+                        <div class="pro-feature-image"><img src="./assets/pro/history.svg" width="400" height="240" alt="Saved session for Maya: initial /s/ sentences, 90 percent correct." loading="lazy"></div>
+                        <div class="pro-feature-copy"><span class="pro-feature-number" aria-hidden="true">2</span><h4>Sessions save themselves</h4><p>Every tally lands in the student’s history automatically. No extra save step after a busy session.</p></div>
+                    </article>
+                    <article class="pro-feature-card" role="group" aria-roledescription="slide" aria-label="3 of 6: Progress at a glance">
+                        <div class="pro-feature-image"><img src="./assets/pro/progress.svg" width="400" height="240" alt="Three initial /s/ sentences sessions with 70, 80, and 90 percent correct." loading="lazy"></div>
+                        <div class="pro-feature-copy"><span class="pro-feature-number" aria-hidden="true">3</span><h4>Progress at a glance</h4><p>Review each student’s results by date and target, including the articulation level you entered.</p></div>
+                    </article>
+                    <article class="pro-feature-card" role="group" aria-roledescription="slide" aria-label="4 of 6: Names fill in as you type">
+                        <div class="pro-feature-image"><img src="./assets/pro/names.svg" width="400" height="240" alt="Typing Ma suggests Maya Bennett; target is initial /s/ sentences." loading="lazy"></div>
+                        <div class="pro-feature-copy"><span class="pro-feature-number" aria-hidden="true">4</span><h4>Names fill in as you type</h4><p>Start typing a name and choose from your roster. Spend less time entering the same details.</p></div>
+                    </article>
+                    <article class="pro-feature-card" role="group" aria-roledescription="slide" aria-label="5 of 6: Your roster, everywhere">
+                        <div class="pro-feature-image"><img src="./assets/pro/sync.svg" width="400" height="240" alt="The same three students displayed on a tablet and a phone." loading="lazy"></div>
+                        <div class="pro-feature-copy"><span class="pro-feature-number" aria-hidden="true">5</span><h4>Your roster, everywhere</h4><p>Sign in with your email to keep students and sessions in sync on your phone, tablet, and laptop.</p></div>
+                    </article>
+                    <article class="pro-feature-card" role="group" aria-roledescription="slide" aria-label="6 of 6: Ready for your next report">
+                        <div class="pro-feature-image"><img src="./assets/pro/export.svg" width="400" height="240" alt="Spreadsheet preview of students, targets with articulation levels, and accuracy." loading="lazy"></div>
+                        <div class="pro-feature-copy"><span class="pro-feature-number" aria-hidden="true">6</span><h4>Ready for your next report</h4><p>Export your student sessions as CSV to work with in a spreadsheet for reports and IEP meetings.</p></div>
+                    </article>
+                </div>
+                <div class="pro-carousel-controls" hidden>
+                    <button class="pro-carousel-arrow" type="button" data-feature-direction="-1" aria-label="Previous feature" aria-controls="pro-feature-track">←</button>
+                    <span id="pro-feature-position" aria-live="polite" aria-atomic="true">1 / 6</span>
+                    <button class="pro-carousel-arrow" type="button" data-feature-direction="1" aria-label="Next feature" aria-controls="pro-feature-track">→</button>
+                </div>
+            </section>
+            <div class="pro-plan-heading"><h3>A home for every student’s progress.</h3><p>Every Pro feature included in both plans.</p></div>
+
+            <div class="pro-inline-purchase" id="pro-inline-purchase">
+                <div class="plans" role="radiogroup" aria-label="Choose a plan">
+                    <button type="button" class="plan" role="radio" aria-checked="true" data-package="lifetime">
+                        <span class="plan-radio" aria-hidden="true"></span>
+                        <span class="plan-body">
+                            <span class="plan-row">
+                                <span class="plan-name">Lifetime</span>
+                                <span class="plan-price" data-price="lifetime">$19.99</span>
+                            </span>
+                            <span class="plan-note"><span>One-time purchase</span><span aria-hidden="true">&bull;</span><span>Includes every feature</span></span>
                         </span>
-                        <span class="plan-note"><span>One-time purchase</span><span aria-hidden="true">&bull;</span><span>Includes every feature</span></span>
-                    </span>
-                </button>
-                <button type="button" class="plan" role="radio" aria-checked="false" data-package="monthly">
-                    <span class="plan-radio" aria-hidden="true"></span>
-                    <span class="plan-body">
-                        <span class="plan-row">
-                            <span class="plan-name">Monthly</span>
-                            <span class="plan-price" data-price="monthly">$2.99/mo</span>
+                    </button>
+                    <button type="button" class="plan" role="radio" aria-checked="false" data-package="monthly">
+                        <span class="plan-radio" aria-hidden="true"></span>
+                        <span class="plan-body">
+                            <span class="plan-row">
+                                <span class="plan-name">Monthly</span>
+                                <span class="plan-price" data-price="monthly">$2.99/mo</span>
+                            </span>
+                            <span class="plan-note"><span>Renews monthly</span><span aria-hidden="true">&bull;</span><span>Cancel anytime</span></span>
                         </span>
-                        <span class="plan-note"><span>Renews monthly</span><span aria-hidden="true">&bull;</span><span>Cancel anytime</span></span>
-                    </span>
+                    </button>
+                </div>
+                <button type="button" id="buy" class="btn-primary">
+                    <span class="buy-label" id="buy-label">Purchase lifetime</span>
+                    <span id="buy-price">$19.99</span>
                 </button>
+                <p id="paywall-status" class="paywall-status" aria-live="polite"></p>
             </div>
-            <button type="button" id="buy" class="btn-primary">
-                <span class="buy-label" id="buy-label">Purchase lifetime</span>
-                <span id="buy-price">$19.99</span>
-            </button>
-            <p id="paywall-status" class="paywall-status" aria-live="polite"></p>
-            <h3 class="paywall-heading">Features</h3>
-            <ul class="paywall-features">
-                <li>
-                    <span class="feature-body">
-                        <strong>Sessions save themselves</strong>
-                        <span>Every tally on the board lands in the student's history - no extra step.</span>
-                    </span>
-                </li>
-                <li>
-                    <span class="feature-body">
-                        <strong>Progress at a glance</strong>
-                        <span>Percent correct over time for each student and each target.</span>
-                    </span>
-                </li>
-                <li>
-                    <span class="feature-body">
-                        <strong>Names fill in as you type</strong>
-                        <span>Your roster shows up in the Name field on the board.</span>
-                    </span>
-                </li>
-                <li>
-                    <span class="feature-body">
-                        <strong>Sync across your devices</strong>
-                        <span>Sign in with your email and your roster is on your phone, tablet, and laptop.</span>
-                    </span>
-                </li>
-                <li>
-                    <span class="feature-body">
-                        <strong>Export to a spreadsheet</strong>
-                        <span>Download everything as CSV for reports and IEP meetings.</span>
-                    </span>
-                </li>
-            </ul>
+            <div class="pro-purchase-dock">
+                <div class="plans" role="radiogroup" aria-label="Choose a plan in the sticky purchase bar">
+                    <button type="button" class="plan" role="radio" aria-checked="true" data-package="lifetime">
+                        <span class="plan-radio" aria-hidden="true"></span>
+                        <span class="plan-body">
+                            <span class="plan-row">
+                                <span class="plan-name">Lifetime</span>
+                                <span class="plan-price" data-price="lifetime">$19.99</span>
+                            </span>
+                            <span class="plan-note"><span>One-time purchase</span><span aria-hidden="true">&bull;</span><span>Includes every feature</span></span>
+                        </span>
+                    </button>
+                    <button type="button" class="plan" role="radio" aria-checked="false" data-package="monthly">
+                        <span class="plan-radio" aria-hidden="true"></span>
+                        <span class="plan-body">
+                            <span class="plan-row">
+                                <span class="plan-name">Monthly</span>
+                                <span class="plan-price" data-price="monthly">$2.99/mo</span>
+                            </span>
+                            <span class="plan-note"><span>Renews monthly</span><span aria-hidden="true">&bull;</span><span>Cancel anytime</span></span>
+                        </span>
+                    </button>
+                </div>
+                <button type="button" id="sticky-buy" class="btn-primary">
+                    <span class="buy-label" id="sticky-buy-label">Purchase lifetime</span>
+                    <span id="sticky-buy-price">$19.99</span>
+                </button>
+                <p id="sticky-paywall-status" class="paywall-status" aria-live="polite"></p>
+            </div>
             <p id="paywall-export" class="paywall-export" hidden>
                 <span id="paywall-export-count"></span> saved on this device.
                 <button type="button" id="paywall-export-btn" class="link-btn">Export as CSV</button>
