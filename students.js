@@ -745,6 +745,10 @@
         const saved = store.students.list().length;
         paywallExport.hidden = saved === 0;
         paywallExportCount.textContent = plural(saved, 'student');
+        // Restoring is a store capability, not a network result: a customer
+        // reinstalling with the store unreachable still needs the button, and
+        // App Review expects it on any screen selling a non-consumable.
+        restoreBtn.hidden = billing.platform() === 'web';
         if (pricesLoaded) return;
         pricesLoaded = true;
         billing.offerings().then((packages) => {
@@ -755,7 +759,6 @@
                 });
             });
             selectPlan(selectedPackage);
-            restoreBtn.hidden = !billing.canRestore();
         }).catch(() => {
             // Prices stay at their defaults; buttons still try the store on tap.
             pricesLoaded = false;
