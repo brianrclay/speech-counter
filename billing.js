@@ -93,7 +93,17 @@
         const config = { apiKey: RC_KEYS[name] };
         if (session && session.userId) config.appUserID = session.userId;
         await Purchases.configure(config);
-        Purchases.addCustomerInfoUpdateListener((info) => remember(info)).catch(() => {});
+        // The bridge hands back a callback id here, not a promise, so nothing
+        // may assume this is thenable: a throw on this line leaves impl unset
+        // and takes every other billing call down with it. The listener only
+        // catches renewals that land mid-session - purchase, restore, and
+        // sign-in all refresh on their own.
+        try {
+            const registered = Purchases.addCustomerInfoUpdateListener((info) => remember(info));
+            if (registered && typeof registered.catch === 'function') registered.catch(() => {});
+        } catch (err) {
+            // Same as above.
+        }
         return {
             async customerInfo() {
                 return (await Purchases.getCustomerInfo()).customerInfo;
