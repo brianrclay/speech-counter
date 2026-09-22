@@ -1,22 +1,33 @@
-import { endpoint, json, fail, authenticate, saveAccount, hasRenewingSubscription, stores } from './lib/common.mjs';
+import { endpoint, json, fail, verifyToken, emailKey, stores } from './lib/common.mjs';
 
 export const config = { path: '/api/account-delete' };
 
-// Revoke first, then remove the roster: any token issued before this moment
-// is refused from here on, so another device or an in-flight sync can't
-// write the roster back. The account record itself is kept as a tombstone;
-// signing in again with the same email starts a fresh, empty roster.
-export default endpoint(async (req, context) => {
-    const s = stores(context);
-    const auth = await authenticate(req, s);
-    if (await hasRenewingSubscription(auth.userId)) {
-        throw fail(409, 'Cancel your subscription before deleting your account');
+// Keep only a revocation tombstone. Remove the email lookup and personal
+// data, so signing up again creates a new account. A valid old token may
+// retry deletion after a partial storage failure, but cannot use other APIs.
+export async function deleteAccount(claims, s) {
+    const found = await s.accounts.getWithMetadata(claims.userId, { type: 'json' });
+    const account = found && found.data;
+    if (!account || (!account.deletedAt && claims.issuedAt < (account.tokensValidAfter || 0))) {
+        throw fail(401, 'Sign in to continue');
     }
     const now = Date.now();
-    auth.account.tokensValidAfter = now;
-    auth.account.deletedAt = new Date(now).toISOString();
-    auth.account.premium = null;
-    await saveAccount(auth.account, s);
-    await s.rosters.delete(auth.userId);
+    await s.accounts.setJSON(claims.userId, {
+        userId: claims.userId,
+        tokensValidAfter: now,
+        deletedAt: account.deletedAt || new Date(now).toISOString(),
+    });
+    await s.rosters.delete(claims.userId);
+    const key = emailKey(claims.email);
+    const index = await s.accounts.get(key, { type: 'json' });
+    if (index && index.userId === claims.userId) {
+        await s.codes.delete(key);
+        await s.accounts.delete(key);
+    }
+}
+
+export default endpoint(async (req, context) => {
+    const s = stores(context);
+    await deleteAccount(verifyToken(req), s);
     return json(req, 200, { ok: true });
 });

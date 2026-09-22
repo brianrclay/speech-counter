@@ -377,7 +377,7 @@
     let celebrating = null;
 
     const CELEBRATIONS = {
-        purchase: { title: 'Purchase completed', lead: "We've emailed you a receipt. Happy counting!" },
+        purchase: { title: "You're all set", lead: 'Speech Count Pro is linked to your account. Sign in with the same email on your other devices.' },
         coupon: { title: "You're all set", lead: 'Your code unlocked Speech Count Pro. Happy counting!' },
     };
 
@@ -775,7 +775,7 @@
             setPaywallStatus("The store isn't available right now. Check your connection and try again.");
             return;
         }
-        if (billing.platform() === 'web' && !account.session()) {
+        if (!account.session()) {
             const plan = planButtons.find((b) => b.dataset.package === packageId);
             window.SpeechSheet.open({ plan: plan.querySelector('.plan-body'), onSignedIn: () => buy(packageId) });
             return;
@@ -834,7 +834,11 @@
         });
     });
 
-    restoreBtn.addEventListener('click', async () => {
+    async function restorePurchases() {
+        if (!account.session()) {
+            window.SpeechSheet.open({ title: 'Sign in to restore purchases', onSignedIn: restorePurchases });
+            return;
+        }
         setPaywallStatus('Checking with the store...');
         try {
             const entitlement = await billing.restore();
@@ -846,7 +850,9 @@
         } catch (err) {
             setPaywallStatus(err.message || "Couldn't restore purchases right now.");
         }
-    });
+    }
+
+    restoreBtn.addEventListener('click', restorePurchases);
 
     // Redeeming a coupon calls our server, which grants the RevenueCat
     // entitlement directly - so it needs the same signed-in account a code

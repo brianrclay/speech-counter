@@ -21,6 +21,15 @@
     const store = window.SpeechStore;
     let impl = null;
     let readyPromise = null;
+    let operationQueue = Promise.resolve();
+
+    // Identity changes and store operations must complete in order. In
+    // particular, a background refresh must not race sign-in or checkout.
+    function serial(operation) {
+        const result = operationQueue.then(operation);
+        operationQueue = result.catch(() => {});
+        return result;
+    }
 
     function platform() {
         const capacitor = window.Capacitor;
@@ -193,37 +202,68 @@
         return readyPromise;
     }
 
-    async function refresh() {
-        await ready();
-        return remember(await impl.customerInfo());
-    }
-
-    async function purchase(pkg) {
-        await ready();
-        track('begin_checkout', { item_id: pkg.id, platform: platform() });
-        try {
-            const entitlement = remember(await impl.purchase(pkg));
-            if (entitlement.active) track('purchase', { item_id: pkg.id, platform: platform() });
-            return entitlement;
-        } catch (err) {
-            if (cancelled(err)) return null;
-            throw err;
+    async function accountInfo(required = false) {
+        const session = store.session.get();
+        if (!session || !session.userId) {
+            if (required) throw new Error('Sign in or create an account to continue.');
+            return impl.customerInfo();
         }
+        // Sign-in can succeed while RevenueCat is offline. Retry identity
+        // here, and never open checkout if identifying the account fails.
+        const info = await impl.logIn(session.userId);
+        if (store.session.get()?.userId !== session.userId) {
+            throw new Error('Your account changed. Please try again.');
+        }
+        return info;
     }
 
-    async function restore() {
-        await ready();
-        return remember(await impl.restore());
+    function refresh() {
+        return serial(async () => {
+            await ready();
+            return remember(await accountInfo());
+        });
     }
 
-    async function logIn(userId) {
-        await ready();
-        return remember(await impl.logIn(userId));
+    function purchase(pkg) {
+        return serial(async () => {
+            await ready();
+            const existing = remember(await accountInfo(true));
+            // Signing in may recover an existing purchase from another
+            // device or alias a legacy anonymous purchase. Don't charge again.
+            if (existing.active) return existing;
+            track('begin_checkout', { item_id: pkg.id, platform: platform() });
+            try {
+                const entitlement = remember(await impl.purchase(pkg));
+                if (entitlement.active) track('purchase', { item_id: pkg.id, platform: platform() });
+                return entitlement;
+            } catch (err) {
+                if (cancelled(err)) return null;
+                throw err;
+            }
+        });
     }
 
-    async function logOut() {
-        await ready();
-        return remember(await impl.logOut());
+    function restore() {
+        return serial(async () => {
+            await ready();
+            await accountInfo(true);
+            return remember(await impl.restore());
+        });
+    }
+
+    function logIn(userId) {
+        return serial(async () => {
+            await ready();
+            if (store.session.get()?.userId !== userId) throw new Error('Your account changed. Please try again.');
+            return remember(await accountInfo(true));
+        });
+    }
+
+    function logOut() {
+        return serial(async () => {
+            await ready();
+            return remember(await impl.logOut());
+        });
     }
 
     async function offerings() {

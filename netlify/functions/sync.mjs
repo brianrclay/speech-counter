@@ -140,6 +140,18 @@ export default endpoint(async (req, context) => {
     }
     if (!roster) throw fail(503, 'The roster is busy syncing from another device. Try again');
 
+    // Deletion may have happened while this sync was writing. Remove any
+    // late write and reject the old token before returning personal data.
+    try {
+        await authenticate(req, s);
+    } catch (err) {
+        if (err.status === 401) {
+            const current = await s.accounts.get(auth.userId, { type: 'json' });
+            if (!current || current.deletedAt) await s.rosters.delete(auth.userId);
+        }
+        throw err;
+    }
+
     // Changes after the client's cursor, oldest first, one page at a time.
     const changedSince = (list) => list.filter((r) => (r.rev || 0) > since);
     const page = [...changedSince(roster.students).map((r) => ({ kind: 's', r })), ...changedSince(roster.sessions).map((r) => ({ kind: 'x', r }))]
