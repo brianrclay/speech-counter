@@ -847,7 +847,12 @@
 
     // Redeeming a coupon calls our server, which grants the RevenueCat
     // entitlement directly - so it needs the same signed-in account a code
-    // was issued against, on every platform, not just the web.
+    // was issued against. Codes are web-only: the stores treat an in-app
+    // unlock mechanism of our own as a policy violation (App Store Review
+    // 3.1.1), while a grant made on the web follows the account into the
+    // app on sign-in, which they allow.
+    couponToggle.hidden = billing.platform() !== 'web';
+
     function setCouponStatus(text) {
         couponStatus.textContent = text || '';
     }
