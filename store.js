@@ -272,6 +272,7 @@
                 deletedAt: null,
             };
             cache.students.push(student);
+            window.SpeechAnalytics?.track('student_create');
             persist('students');
             markDirty('students', student);
             return student;
@@ -280,6 +281,7 @@
             const student = students.get(id);
             const display = cleanName(name);
             if (!student || !display) return student;
+            window.SpeechAnalytics?.track('student_rename');
             student.name = display;
             student.nameKey = nameKey(display);
             student.updatedAt = now();
@@ -291,6 +293,7 @@
             const student = students.get(id);
             if (!student) return;
             const stamp = now();
+            window.SpeechAnalytics?.track('student_delete');
             student.deletedAt = stamp;
             student.updatedAt = stamp;
             blank(student);
@@ -318,6 +321,7 @@
             if (!session) {
                 session = { id, startedAt: stamp, createdAt: stamp };
                 cache.sessions.push(session);
+                window.SpeechAnalytics?.track('session_save');
             }
             session.studentId = studentId;
             session.target = cleanName(target);

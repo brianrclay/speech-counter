@@ -414,6 +414,7 @@
         }
         renderBillingBanner();
         if (match) {
+            if (currentId !== match[1] && store.students.get(match[1])) billing.track('student_view');
             selecting = false;
             selected.clear();
             appHeader.hidden = true;
@@ -472,6 +473,7 @@
     }
 
     function setSort(mode) {
+        billing.track('students_sort');
         sortMode = mode;
         try {
             localStorage.setItem(SORT_KEY, mode);
@@ -624,6 +626,7 @@
             incorrect: count(row.querySelector('.session-incorrect input')),
         };
         store.sessions.update(id, fields);
+        billing.track('session_edit');
 
         // If this session is still open on the board, keep the board's copy
         // in step so the next tap doesn't overwrite the edit.
@@ -656,6 +659,7 @@
         if (event.target.closest('.delete-row')) {
             if (!confirm('Remove this session?')) return;
             store.sessions.remove(row.dataset.sessionId);
+            billing.track('session_delete');
             renderDetail(currentId);
         }
     });
@@ -682,6 +686,7 @@
         if (share) {
             try {
                 await share.share({ title: filename, text: csv });
+                billing.track('export_data', { format: 'csv' });
             } catch (err) {
                 // User dismissed the share sheet.
             }
@@ -693,6 +698,7 @@
         link.download = filename;
         document.body.appendChild(link);
         link.click();
+        billing.track('export_data', { format: 'csv' });
         link.remove();
         setTimeout(() => URL.revokeObjectURL(link.href), 1000);
     }
@@ -800,7 +806,10 @@
     }
 
     planButtons.forEach((button) => {
-        button.addEventListener('click', () => selectPlan(button.dataset.package));
+        button.addEventListener('click', () => {
+            selectPlan(button.dataset.package);
+            billing.track('select_plan', { item_id: button.dataset.package });
+        });
         button.addEventListener('keydown', (event) => {
             const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[event.key];
             if (!step) return;
@@ -808,6 +817,7 @@
             const group = [...button.closest('.plans').querySelectorAll('.plan')];
             const next = group[(group.indexOf(button) + step + group.length) % group.length];
             selectPlan(next.dataset.package);
+            billing.track('select_plan', { item_id: next.dataset.package });
             next.focus();
         });
     });

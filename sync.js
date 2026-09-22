@@ -120,10 +120,12 @@
         try {
             await exchange(session, controller.signal, gen);
             if (gen !== generation) return;
+            window.SpeechAnalytics?.track('sync_complete');
             failures = 0;
             setStatus('idle');
         } catch (err) {
             if (gen !== generation || (err && err.name === 'AbortError')) return;
+            if (failures === 0) window.SpeechAnalytics?.track('sync_error');
             failures += 1;
             if (err.status === 401) {
                 account.signOut();

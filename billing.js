@@ -40,7 +40,7 @@
     }
 
     function track(name, params) {
-        if (typeof window.gtag === 'function') window.gtag('event', name, params || {});
+        window.SpeechAnalytics?.track(name, params);
     }
 
     function iso(value) {
@@ -231,13 +231,21 @@
             // Signing in may recover an existing purchase from another
             // device or alias a legacy anonymous purchase. Don't charge again.
             if (existing.active) return existing;
+            const purchasingUser = store.session.get()?.userId;
+            await window.SpeechAnalytics?.syncContext();
+            if (store.session.get()?.userId !== purchasingUser) throw new Error('Your account changed. Please try again.');
             track('begin_checkout', { item_id: pkg.id, platform: platform() });
             try {
                 const entitlement = remember(await impl.purchase(pkg));
-                if (entitlement.active) track('purchase', { item_id: pkg.id, platform: platform() });
+                // Revenue is sent only by the authenticated RevenueCat webhook.
+                if (entitlement.active) track('checkout_complete', { item_id: pkg.id, platform: platform() });
                 return entitlement;
             } catch (err) {
-                if (cancelled(err)) return null;
+                if (cancelled(err)) {
+                    track('checkout_cancel', { item_id: pkg.id, platform: platform() });
+                    return null;
+                }
+                track('checkout_error', { item_id: pkg.id, platform: platform() });
                 throw err;
             }
         });
@@ -247,7 +255,9 @@
         return serial(async () => {
             await ready();
             await accountInfo(true);
-            return remember(await impl.restore());
+            const entitlement = remember(await impl.restore());
+            track('restore_purchases', { result: entitlement.active ? 'active' : 'inactive', platform: platform() });
+            return entitlement;
         });
     }
 
