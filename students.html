@@ -33,6 +33,16 @@
             if (delta) document.documentElement.dataset.nav = delta > 0 ? 'forward' : 'back';
         })();
     </script>
+    <!-- Native shell only: lets the CSS drop the tab bar to the home
+         indicator. Capacitor injects its bridge before this runs. -->
+    <script>
+        (function () {
+            var c = window.Capacitor;
+            if (c && c.isNativePlatform && c.isNativePlatform()) {
+                document.documentElement.dataset.native = c.getPlatform();
+            }
+        })();
+    </script>
     <title>Students - Speech Count</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="description" content="Saved results for each student">
@@ -208,8 +218,8 @@
                     </svg>
                 </div>
                 <div class="purchase-done-text">
-                    <h2 class="purchase-done-title" tabindex="-1">Purchase completed</h2>
-                    <p class="purchase-done-lead">We've emailed you a receipt. Happy counting!</p>
+                    <h2 class="purchase-done-title" tabindex="-1">You're all set</h2>
+                    <p class="purchase-done-lead">Speech Count Pro is linked to your account. Sign in with the same email on your other devices.</p>
                 </div>
             </div>
             <button type="button" id="purchase-finish" class="btn-primary">Finish</button>

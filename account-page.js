@@ -46,6 +46,9 @@
         const entitlement = store.entitlements.get() || {};
         promo.hidden = Boolean(session) || premium;
         signedOut.hidden = Boolean(session);
+        document.getElementById('account-login-title').textContent = premium ? 'Link your Pro purchase' : 'Already have an account?';
+        document.getElementById('account-link-purchase').hidden = !premium;
+        signinBtn.textContent = premium ? 'Sign in or create account' : 'Log in now';
         details.hidden = !session;
         planSection.hidden = !session && !premium;
         danger.hidden = !session;
@@ -110,10 +113,15 @@
 
     signinBtn.addEventListener('click', () => {
         window.SpeechSheet.open({
-            title: 'Log in',
-            onSignedIn: () => {
+            title: store.entitlements.isPremium() ? 'Link your Pro purchase' : 'Log in',
+            onSignedIn: async () => {
                 render();
-                billing.refresh().then(loadPrices).catch(() => {});
+                try {
+                    await billing.refresh();
+                    loadPrices();
+                } catch (err) {
+                    alert('You are signed in, but we could not check your Pro purchase. Check your connection and try again.');
+                }
             },
         });
     });
@@ -135,21 +143,16 @@
         }
     });
 
-    // A subscription that will renew has to be cancelled first (only the
-    // store can cancel it); the server enforces the same rule.
+    // Deletion is always available. Store billing must be cancelled
+    // separately; warn clearly without blocking immediate deletion.
     deleteBtn.addEventListener('click', async () => {
         const session = account.session();
         if (!session) return;
-        const entitlement = store.entitlements.get() || {};
-        if (store.entitlements.isPremium() && entitlement.expiresAt && entitlement.willRenew) {
-            alert('Your subscription is still set to renew. Cancel it under Manage subscription first, then delete your account. '
-                + "You'll keep Speech Count Pro until the end of the period you've paid for.");
-            if (!manageSubscription.hidden) manageSubscription.focus();
-            return;
-        }
         const message = 'Delete the Speech Count account for ' + session.email + '?\n\n'
             + 'This removes your synced roster from Speech Count and from this device, and logs you out. '
-            + 'It cannot be undone.';
+            + 'It cannot be undone.\n\n'
+            + 'Deleting your account does not cancel subscriptions. Cancel any recurring plan under Manage subscription to stop future charges. '
+            + 'Choose Cancel to manage billing first, or OK to delete your account now.';
         if (!confirm(message)) return;
         deleteBtn.disabled = true;
         window.SpeechSync.stop();
@@ -160,13 +163,16 @@
             alert('Your account has been deleted.');
         } catch (err) {
             alert(err.message || "Couldn't delete your account right now.");
-            if (err.status === 409) billing.refresh().catch(() => {});
         } finally {
             deleteBtn.disabled = false;
         }
     });
 
-    restoreBtn.addEventListener('click', async () => {
+    async function restorePurchases() {
+        if (!account.session()) {
+            window.SpeechSheet.open({ title: 'Sign in to restore purchases', onSignedIn: restorePurchases });
+            return;
+        }
         restoreBtn.disabled = true;
         try {
             const entitlement = await billing.restore();
@@ -176,7 +182,9 @@
         } finally {
             restoreBtn.disabled = false;
         }
-    });
+    }
+
+    restoreBtn.addEventListener('click', restorePurchases);
 
     const analyticsToggle = document.getElementById('analytics-toggle');
     try {

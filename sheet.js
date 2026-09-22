@@ -24,6 +24,7 @@
     let busy = false;
     let onSignedIn = null;
     let opener = null;
+    let revision = 0;
 
     function reducedMotion() {
         return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -79,6 +80,7 @@
     }
 
     function open(options) {
+        revision += 1;
         onSignedIn = options.onSignedIn || null;
         opener = document.activeElement;
         behind.forEach((el) => { el.inert = true; });
@@ -101,6 +103,7 @@
 
     function close() {
         if (sheet.hidden) return;
+        revision += 1;
         sheet.classList.remove('open');
         behind.forEach((el) => { el.inert = false; });
         const finish = () => {
@@ -138,19 +141,25 @@
             return;
         }
         setBusy(true);
+        const submittedRevision = revision;
         try {
             if (step === 'email') {
                 await account.requestCode(email);
+                if (submittedRevision !== revision) return;
                 showStep('code', true);
                 setBusy(false);
                 codeField.focus();
                 return;
             }
             await account.verifyCode(email, codeField.value);
+            // Closing the sheet cancels checkout even if email verification
+            // finishes afterwards. The account may still have signed in.
+            if (submittedRevision !== revision) return;
             const done = onSignedIn;
             close();
             if (done) done();
         } catch (err) {
+            if (submittedRevision !== revision) return;
             status.textContent = err.message;
             setBusy(false);
             (step === 'code' ? codeField : emailField).focus();

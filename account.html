@@ -33,6 +33,16 @@
             if (delta) document.documentElement.dataset.nav = delta > 0 ? 'forward' : 'back';
         })();
     </script>
+    <!-- Native shell only: lets the CSS drop the tab bar to the home
+         indicator. Capacitor injects its bridge before this runs. -->
+    <script>
+        (function () {
+            var c = window.Capacitor;
+            if (c && c.isNativePlatform && c.isNativePlatform()) {
+                document.documentElement.dataset.native = c.getPlatform();
+            }
+        })();
+    </script>
     <title>Account - Speech Count</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="description" content="Your Speech Count account and plan">
@@ -70,7 +80,8 @@
         </section>
 
         <section id="account-signed-out" class="account-card login-card" hidden>
-            <h2 class="login-title">Already have an account?</h2>
+            <h2 class="login-title" id="account-login-title">Already have an account?</h2>
+            <p id="account-link-purchase" hidden>Sign in or create an account to link Pro to your email and use it on your other devices.</p>
             <button type="button" id="account-signin" class="btn-primary btn-quiet">Log in now</button>
         </section>
 

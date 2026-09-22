@@ -53,14 +53,14 @@ const premiumFetch = async () => ({ ok: true, status: 200, json: async () => ({ 
 
 function loadCommon() {
     const src = source('netlify/functions/lib/common.mjs').replace(/^import .*;\n/gm, '').replace(/export /g, '');
-    const names = ['endpoint', 'json', 'fail', 'env', 'fetchWithTimeout', 'stores', 'normalizeEmail', 'resolveAccount', 'saveAccount', 'issueCode', 'consumeCode', 'isReviewerEmail', 'reviewerCodeMatches', 'issueToken', 'verifyToken', 'authenticate', 'assertPremium', 'hasRenewingSubscription', 'mergeRecords'];
+    const names = ['endpoint', 'json', 'fail', 'env', 'fetchWithTimeout', 'stores', 'normalizeEmail', 'emailKey', 'resolveAccount', 'saveAccount', 'issueCode', 'consumeCode', 'isReviewerEmail', 'reviewerCodeMatches', 'issueToken', 'verifyToken', 'authenticate', 'assertPremium', 'hasRenewingSubscription', 'mergeRecords'];
     const factory = new Function('createHmac', 'createHash', 'randomBytes', 'randomInt', 'timingSafeEqual', 'getStore', 'process', 'fetch', src + '\nreturn {' + names.join(',') + '};');
     return factory(crypto.createHmac, crypto.createHash, crypto.randomBytes, crypto.randomInt, crypto.timingSafeEqual, getStore, testProcess, premiumFetch);
 }
 const common = loadCommon();
 
 function handler(file) {
-    const s = source(file).replace(/^import .*;\n/gm, '').replace(/export const config/g, 'const config').replace('export default endpoint', 'return endpoint');
+    const s = source(file).replace(/^import .*;\n/gm, '').replace(/export const config/g, 'const config').replace(/export async function/g, 'async function').replace('export default endpoint', 'return endpoint');
     return new Function(...Object.keys(common), 'getStore', 'fetch', s)(...Object.values(common), getStore, premiumFetch);
 }
 const req = (body, token) => new Request('https://example.test/api/test', { method: 'POST', headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: 'Bearer ' + token } : {}) }, body: JSON.stringify(body) });
@@ -139,10 +139,6 @@ function ok(msg) { passed += 1; console.log('PASS', msg); }
     const token = common.issueToken(acc.userId, 'owner@example.test');
     assert.equal((await sync(req({ students: [student('s1', 'One')] }, token), ctx)).status, 200);
     renewing = true;
-    assert.equal((await del(req({}, token), ctx)).status, 409);
-    assert.equal((await sync(req({}, token), ctx)).status, 200);
-    ok('deletion is refused while a subscription will renew, and the account is untouched');
-    renewing = false;
     assert.equal((await del(req({}, token), ctx)).status, 200);
     assert.equal((await sync(req({ students: [student('s1', 'One')] }, token), ctx)).status, 401);
     assert.equal(blobs.get('rosters|' + acc.userId), undefined);
@@ -150,14 +146,17 @@ function ok(msg) { passed += 1; console.log('PASS', msg); }
     const back = await common.issueCode('owner@example.test', S);
     const relogin = await verify(req({ email: 'owner@example.test', code: back }), ctx);
     assert.equal(relogin.status, 200);
-    const fresh = (await relogin.json()).token;
+    const freshLogin = await relogin.json();
+    const fresh = freshLogin.token;
+    assert.notEqual(freshLogin.userId, acc.userId);
+    renewing = false;
     const empty = await (await sync(req({}, fresh), ctx)).json();
     assert.equal(empty.students.length, 0);
     ok('a deleted account\'s old token is refused and cannot recreate the roster; signing in again starts empty');
 
     // 6. concurrent syncs keep both inserts
     await Promise.all([sync(req({ students: [student('a', 'A')] }, fresh), ctx), sync(req({ students: [student('b', 'B')] }, fresh), ctx)]);
-    assert.equal(blobs.get('rosters|' + acc.userId).value.students.length, 2);
+    assert.equal(blobs.get('rosters|' + freshLogin.userId).value.students.length, 2);
     ok('two concurrent syncs adding different students keep both');
 
     // 7. a slow writer's record is not skipped by a faster poll
@@ -176,12 +175,12 @@ function ok(msg) { passed += 1; console.log('PASS', msg); }
     // 17. tombstones carry no content and are compacted
     const gone = { ...student('a', 'A'), name: 'Secret Name', deletedAt: '2026-09-02T00:00:00.000Z', updatedAt: '2026-09-02T00:00:00.000Z' };
     await sync(req({ students: [gone] }, fresh), ctx);
-    const stored = blobs.get('rosters|' + acc.userId).value.students.find((s) => s.id === 'a');
+    const stored = blobs.get('rosters|' + freshLogin.userId).value.students.find((s) => s.id === 'a');
     assert.equal(stored.name, '');
     assert.ok(stored.deletedAt);
     const ancient = { ...student('old', 'Old'), deletedAt: '2020-01-01T00:00:00.000Z', updatedAt: '2020-01-01T00:00:00.000Z' };
     await sync(req({ students: [ancient] }, fresh), ctx);
-    assert.ok(!blobs.get('rosters|' + acc.userId).value.students.some((s) => s.id === 'old'));
+    assert.ok(!blobs.get('rosters|' + freshLogin.userId).value.students.some((s) => s.id === 'old'));
     ok('deleted records are stored blank and expired tombstones are dropped');
 
     // 20. paging: 4500 records arrive in pages, nothing lost
@@ -199,6 +198,20 @@ function ok(msg) { passed += 1; console.log('PASS', msg); }
     ok('a 4,500-record roster downloads in pages with a stable cursor');
     assert.equal((await sync(req({ students: Array.from({ length: 2001 }, (_, i) => student('x' + i, 'X')) }, fresh), ctx)).status, 413);
     ok('a single request over the per-request limit is rejected (client chunks at 1,000)');
+
+    // A request already in flight must not recreate data after deletion.
+    const { account: raceAccount } = await common.resolveAccount('delete-race@example.test', S);
+    const raceToken = common.issueToken(raceAccount.userId, 'delete-race@example.test');
+    let releaseRace; let startRace;
+    const raceStarted = new Promise((resolve) => { startRace = resolve; });
+    readGate = { started: startRace, wait: new Promise((resolve) => { releaseRace = resolve; }) };
+    const lateWrite = sync(req({ students: [student('late-delete', 'Private')] }, raceToken), ctx);
+    await raceStarted;
+    assert.equal((await del(req({}, raceToken), ctx)).status, 200);
+    releaseRace();
+    assert.equal((await lateWrite).status, 401);
+    assert.equal(blobs.get('rosters|' + raceAccount.userId), undefined);
+    ok('sync already in flight cannot recreate a deleted roster');
 
     // ---- client ----
     // 2. account switch does not carry the previous account's roster

@@ -115,7 +115,7 @@ function safeEqual(a, b) {
     return x.length === y.length && timingSafeEqual(x, y);
 }
 
-function emailKey(email) {
+export function emailKey(email) {
     return 'email:' + createHash('sha256').update(email).digest('hex');
 }
 
@@ -136,6 +136,7 @@ export async function resolveAccount(email, { accounts }) {
 
 async function loadAccount(userId, email, accounts) {
     const existing = await accounts.getWithMetadata(userId, { type: 'json' });
+    if (existing && existing.data && existing.data.deletedAt) throw fail(503, 'Account deletion is still finishing. Try again shortly');
     if (existing && existing.data) return { account: existing.data, etag: existing.etag };
     const account = { userId, email, createdAt: new Date().toISOString(), tokensValidAfter: 0, premium: null };
     const { etag } = await accounts.setJSON(userId, account);

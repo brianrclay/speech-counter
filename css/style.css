@@ -72,6 +72,7 @@
   --page-max: 720px;
   --tab-bar-height: 60px;
   --tab-bar-inset: 16px;
+  --tab-bar-bottom: calc(var(--tab-bar-inset) + env(safe-area-inset-bottom));
 
   --ticker-size: clamp(60px, 18vw, 72px);
   --row-gap: 12px;
@@ -146,7 +147,7 @@ body {
   flex-direction: column;
   min-height: 100vh;
   min-height: 100dvh;
-  padding: 0 0 calc(var(--tab-bar-height) + var(--tab-bar-inset) * 2 + env(safe-area-inset-bottom));
+  padding: 0 0 calc(var(--tab-bar-height) + var(--tab-bar-inset) + var(--tab-bar-bottom));
   margin: 0;
   background-color: var(--bg);
   color: var(--text);
@@ -343,11 +344,18 @@ button:disabled {
 
 /* Bottom tab bar */
 
+/* In the native shell there is no browser chrome below the bar, so the extra
+   inset on top of the safe area left it floating high. Sit it just clear of
+   the home indicator instead, and 16px up on devices without one. */
+:root[data-native="ios"] {
+  --tab-bar-bottom: max(var(--tab-bar-inset), env(safe-area-inset-bottom));
+}
+
 .tab-bar {
   position: fixed;
   left: var(--tab-bar-inset);
   right: var(--tab-bar-inset);
-  bottom: calc(var(--tab-bar-inset) + env(safe-area-inset-bottom));
+  bottom: var(--tab-bar-bottom);
   z-index: 20;
   display: flex;
   align-items: center;
