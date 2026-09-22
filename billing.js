@@ -39,8 +39,37 @@
         return 'web';
     }
 
+    const PLAN_EXPERIMENT = 'web_default_plan_v1';
+    const PLAN_EXPERIMENT_ENABLED = true;
+    let planVariant = null;
+
+    // Enroll only when a paywall is displayed. Storage must work so a
+    // returning browser cannot silently cross between experiment groups.
+    function defaultPlan() {
+        if (!PLAN_EXPERIMENT_ENABLED || platform() !== 'web') return 'lifetime';
+        if (planVariant) return planVariant;
+        try {
+            if (localStorage.getItem('speech-counter:analytics') === 'off') return 'lifetime';
+            const key = 'speech-counter:experiment:' + PLAN_EXPERIMENT;
+            let variant = localStorage.getItem(key);
+            if (variant !== 'monthly' && variant !== 'lifetime') {
+                variant = Math.random() < 0.5 ? 'lifetime' : 'monthly';
+                localStorage.setItem(key, variant);
+            }
+            planVariant = variant;
+        } catch (err) {
+            return 'lifetime';
+        }
+        return planVariant;
+    }
+
+    function experimentContext() {
+        return planVariant ? { experimentId: PLAN_EXPERIMENT, variantId: planVariant } : {};
+    }
+
     function track(name, params) {
-        if (typeof window.gtag === 'function') window.gtag('event', name, params || {});
+        const experiment = planVariant ? { experiment_id: PLAN_EXPERIMENT, variant_id: planVariant } : {};
+        window.SpeechAnalytics?.track(name, { ...params, ...experiment });
     }
 
     function iso(value) {
@@ -231,10 +260,13 @@
             // Signing in may recover an existing purchase from another
             // device or alias a legacy anonymous purchase. Don't charge again.
             if (existing.active) return existing;
+            const purchasingUser = store.session.get()?.userId;
+            if (platform() === 'web') await window.SpeechAnalytics?.preparePurchase();
+            if (store.session.get()?.userId !== purchasingUser) throw new Error('Your account changed. Please try again.');
             track('begin_checkout', { item_id: pkg.id, platform: platform() });
             try {
                 const entitlement = remember(await impl.purchase(pkg));
-                if (entitlement.active) track('purchase', { item_id: pkg.id, platform: platform() });
+                if (entitlement.active) track('checkout_complete', { item_id: pkg.id, platform: platform() });
                 return entitlement;
             } catch (err) {
                 if (cancelled(err)) return null;
@@ -291,6 +323,8 @@
         logIn,
         logOut,
         track,
+        defaultPlan,
+        experimentContext,
         canRestore: () => Boolean(impl && impl.canRestore),
         ENTITLEMENT,
     };
