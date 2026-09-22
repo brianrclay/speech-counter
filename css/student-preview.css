@@ -58,7 +58,7 @@
   z-index: 20;
   left: var(--tab-bar-inset);
   right: var(--tab-bar-inset);
-  bottom: calc(var(--tab-bar-inset) + var(--tab-bar-height) + 12px + env(safe-area-inset-bottom));
+  bottom: calc(var(--tab-bar-bottom) + var(--tab-bar-height) + 12px);
   max-width: calc(var(--page-max) - var(--tab-bar-inset) * 2);
   margin: 0 auto;
   padding: 8px;

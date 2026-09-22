@@ -33,6 +33,16 @@
             if (delta) document.documentElement.dataset.nav = delta > 0 ? 'forward' : 'back';
         })();
     </script>
+    <!-- Native shell only: lets the CSS drop the tab bar to the home
+         indicator. Capacitor injects its bridge before this runs. -->
+    <script>
+        (function () {
+            var c = window.Capacitor;
+            if (c && c.isNativePlatform && c.isNativePlatform()) {
+                document.documentElement.dataset.native = c.getPlatform();
+            }
+        })();
+    </script>
     <title>Students - Speech Count</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="description" content="Saved results for each student">
