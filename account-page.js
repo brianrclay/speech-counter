@@ -192,13 +192,9 @@
     } catch (err) {
         analyticsToggle.checked = true;
     }
-    analyticsToggle.addEventListener('change', () => {
-        try {
-            if (analyticsToggle.checked) localStorage.removeItem('speech-counter:analytics');
-            else localStorage.setItem('speech-counter:analytics', 'off');
-        } catch (err) {
-            // Storage unavailable; the default (on) applies.
-        }
+    analyticsToggle.addEventListener('change', async () => {
+        const saved = await window.SpeechAnalytics.setEnabled(analyticsToggle.checked);
+        if (saved === false) alert('Your browser preference is saved, but the account preference could not be updated. Reconnect and try again.');
     });
 
     window.addEventListener('speech:sync', () => {

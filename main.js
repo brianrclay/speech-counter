@@ -8,6 +8,7 @@
     const addRowBtn = document.getElementById('add-row');
 
     const store = window.SpeechStore;
+    const track = (name) => window.SpeechAnalytics?.track(name);
 
     const MAX_HISTORY = 100;
     const history = [];
@@ -186,6 +187,7 @@
         } else {
             renderRow(row, correct, incorrect + 1);
         }
+        track('board_count');
         pop(tickBtn);
         hapticTap();
         pushHistory({ type: 'tick', row, kind });
@@ -195,6 +197,7 @@
     function deleteRow(row) {
         const nextSibling = row.nextElementSibling;
         playExitThenRemove(row, () => {
+            track('board_remove');
             pushHistory({ type: 'deleteRow', row, nextSibling });
             saveState();
         });
@@ -217,6 +220,7 @@
     function undo() {
         const action = history.pop();
         if (!action) return;
+        track('board_undo');
 
         switch (action.type) {
             case 'tick': {
@@ -455,6 +459,7 @@
         rowWrapper.appendChild(row);
         playEnter(row);
         pushHistory({ type: 'addRow', row });
+        track('board_add');
         saveState();
     });
 
@@ -471,6 +476,7 @@
                     rowWrapper.appendChild(freshRow);
                     playEnter(freshRow);
                     pushHistory({ type: 'clear', rows });
+                    track('board_clear');
                     saveState();
                 }
             });

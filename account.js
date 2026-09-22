@@ -79,6 +79,7 @@
     async function signOut({ removeLocal } = {}) {
         if (window.SpeechSync) window.SpeechSync.stop();
         if (removeLocal) await store.clearWorkspace();
+        billing.track('sign_out', { platform: billing.platform() });
         await store.session.clear();
         try {
             await billing.logOut();
