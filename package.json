@@ -5,7 +5,8 @@
   "description": "Count speech as it happens",
   "scripts": {
     "build": "node scripts/build.js",
-    "sync": "npm run build && npx cap sync"
+    "sync": "npm run build && npx cap sync",
+    "sync:ios": "npm run build && cap sync ios"
   },
   "dependencies": {
     "@capacitor/core": "^8.5.2",
