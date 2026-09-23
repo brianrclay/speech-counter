@@ -1,0 +1,126 @@
+{
+  "fixture": "Local backend; production sync.js client",
+  "events": [
+    {
+      "device": "http://localhost:8757",
+      "pushedStudents": 0,
+      "pushedSessions": 0,
+      "rev": 0
+    },
+    {
+      "device": "http://localhost:8757",
+      "pushedStudents": 1,
+      "pushedSessions": 0,
+      "rev": 1
+    },
+    {
+      "device": "http://localhost:8757",
+      "pushedStudents": 0,
+      "pushedSessions": 0,
+      "rev": 1
+    },
+    {
+      "device": "http://localhost:8757",
+      "pushedStudents": 0,
+      "pushedSessions": 1,
+      "rev": 2
+    },
+    {
+      "device": "http://localhost:8757",
+      "pushedStudents": 0,
+      "pushedSessions": 1,
+      "rev": 3
+    },
+    {
+      "device": "http://localhost:8757",
+      "pushedStudents": 0,
+      "pushedSessions": 1,
+      "rev": 3
+    },
+    {
+      "device": "http://localhost:8757",
+      "pushedStudents": 0,
+      "pushedSessions": 0,
+      "rev": 9
+    },
+    {
+      "device": "http://localhost:8757",
+      "pushedStudents": 0,
+      "pushedSessions": 0,
+      "rev": 9
+    },
+    {
+      "device": "http://localhost:8758",
+      "pushedStudents": 0,
+      "pushedSessions": 0,
+      "rev": 9
+    },
+    {
+      "device": "http://localhost:8758",
+      "pushedStudents": 0,
+      "pushedSessions": 0,
+      "rev": 9
+    }
+  ],
+  "students": [
+    {
+      "id": "4c279f4d-3fb0-4ed8-b49b-2e79711b7e9e",
+      "name": "Maya Bennett",
+      "nameKey": "maya bennett",
+      "createdAt": "2026-09-22T16:00:00.000Z",
+      "updatedAt": "2026-09-22T16:00:00.000Z",
+      "deletedAt": null,
+      "rev": 1
+    }
+  ],
+  "sessions": [
+    {
+      "id": "4ffef05d-d33b-47a7-9364-e8e17c2aa0c6",
+      "startedAt": "2026-09-22T16:00:00.000Z",
+      "createdAt": "2026-09-22T16:00:00.000Z",
+      "studentId": "4c279f4d-3fb0-4ed8-b49b-2e79711b7e9e",
+      "target": "Initial /s/ sentences",
+      "correct": 18,
+      "incorrect": 2,
+      "updatedAt": "2026-09-22T16:00:00.000Z",
+      "deletedAt": null,
+      "rev": 3
+    },
+    {
+      "id": "history-14",
+      "studentId": "4c279f4d-3fb0-4ed8-b49b-2e79711b7e9e",
+      "target": "Initial /s/ sentences",
+      "correct": 14,
+      "incorrect": 6,
+      "startedAt": "2026-09-14T16:00:00.000Z",
+      "createdAt": "2026-09-14T16:00:00.000Z",
+      "updatedAt": "2026-09-14T16:00:00.000Z",
+      "deletedAt": null,
+      "rev": 7
+    },
+    {
+      "id": "history-16",
+      "studentId": "4c279f4d-3fb0-4ed8-b49b-2e79711b7e9e",
+      "target": "Initial /s/ sentences",
+      "correct": 16,
+      "incorrect": 4,
+      "startedAt": "2026-09-16T16:00:00.000Z",
+      "createdAt": "2026-09-16T16:00:00.000Z",
+      "updatedAt": "2026-09-16T16:00:00.000Z",
+      "deletedAt": null,
+      "rev": 8
+    },
+    {
+      "id": "history-18",
+      "studentId": "4c279f4d-3fb0-4ed8-b49b-2e79711b7e9e",
+      "target": "Initial /s/ sentences",
+      "correct": 17,
+      "incorrect": 3,
+      "startedAt": "2026-09-18T16:00:00.000Z",
+      "createdAt": "2026-09-18T16:00:00.000Z",
+      "updatedAt": "2026-09-18T16:00:00.000Z",
+      "deletedAt": null,
+      "rev": 9
+    }
+  ]
+}

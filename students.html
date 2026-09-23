@@ -39,8 +39,9 @@
          stylesheet it races the page load and the transition gets skipped. -->
     <style>@view-transition { navigation: auto; }</style>
     <link href="./css/reset.css" rel="stylesheet">
-    <link href="./css/style.css" rel="stylesheet">
+    <link href="./css/style.css?v=20260923-ui4" rel="stylesheet">
     <link href="./css/student-preview.css" rel="stylesheet">
+    <link href="./css/feature-video.css?v=20260923-ui3" rel="stylesheet">
 </head>
 
 <body class="students-page">
@@ -68,13 +69,12 @@
                 <h2 class="paywall-title">Every student.<br>A story of progress.</h2>
                 <p class="paywall-lead">Keep every name, target, and little win.<br>Pro remembers the details for you.</p>
             </div>
-            <figure class="pro-spotlight">
-                <div class="pro-spotlight-art">
-                    <p class="pro-eyebrow">Your students. Their next steps.</p>
-                    <img class="pro-roster-image" src="./assets/pro/roster.svg" width="400" height="285" alt="Sample roster: Maya practices initial /s/ sentences, Oliver initial /r/ words, and Ava final /k/ phrases.">
-                    <img class="pro-session-image" src="./assets/pro/history.svg" width="400" height="240" alt="Maya’s saved initial /s/ sentences session: 18 correct, 2 incorrect, 90 percent correct.">
-                </div>
-                <figcaption>Product illustrations · Fictional student data</figcaption>
+            <figure class="feature-video-hero">
+                <button type="button" class="feature-video-launch" data-feature-video aria-haspopup="dialog">
+                    <img src="./assets/video/student-features.jpg" width="540" height="960" alt="Speech Count student feature video">
+                    <span class="feature-video-play">▶ &nbsp; Watch what’s new <small>34 seconds · Tap to watch</small></span>
+                </button>
+                <figcaption>Real app walkthrough · Fictional student data</figcaption>
             </figure>
             <section class="pro-carousel" aria-label="Explore Speech Count Pro features" aria-roledescription="carousel">
                 <div class="pro-carousel-heading"><h3>Less busywork. More possibilities.</h3><span>Swipe to explore</span></div>
@@ -416,6 +416,7 @@
     <script src="./swipe.js"></script>
     <script src="./sheet.js"></script>
     <script src="./students.js"></script>
+    <script src="./feature-video.js?v=20260923-ui2"></script>
 </body>
 
 </html>

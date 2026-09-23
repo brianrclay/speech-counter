@@ -1017,7 +1017,7 @@
     let frame;
     function update() {
         const rect = inline.getBoundingClientRect();
-        const visible = rect.height > 0 && rect.top < tabs.getBoundingClientRect().top - 12 && rect.bottom > 0;
+        const visible = !dock.closest('dialog[open]') && rect.height > 0 && rect.top < tabs.getBoundingClientRect().top - 12 && rect.bottom > 0;
         if (visible && dock.contains(document.activeElement)) {
             const active = document.activeElement;
             const target = active.dataset.package
@@ -1035,6 +1035,7 @@
     }
     window.addEventListener('scroll', schedule, { passive: true });
     window.addEventListener('resize', schedule);
+    window.addEventListener('speech:feature-video', schedule);
     new ResizeObserver(schedule).observe(document.getElementById('paywall'));
     update();
 })();

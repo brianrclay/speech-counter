@@ -42,7 +42,9 @@
          stylesheet it races the page load and the transition gets skipped. -->
     <style>@view-transition { navigation: auto; }</style>
     <link href="./css/reset.css" rel="stylesheet">
-    <link href="./css/style.css" rel="stylesheet">
+    <link href="./css/style.css?v=20260923-ui4" rel="stylesheet">
+    <link href="./css/student-preview.css" rel="stylesheet">
+    <link href="./css/feature-video.css?v=20260923-ui3" rel="stylesheet">
 </head>
 
 <body class="board-page">
@@ -122,6 +124,76 @@
         </button>
     </main>
 
+    <aside class="feature-video-card" aria-label="Student feature tour" hidden>
+        <button type="button" class="feature-video-card-launch" data-feature-video aria-haspopup="dialog">
+            <span class="feature-video-card-icon" aria-hidden="true">▶</span>
+            <span><strong>Meet your new student features</strong><small>Watch the 34-second tour</small></span>
+        </button>
+        <button type="button" class="feature-video-dismiss" aria-label="Dismiss student feature tour permanently" title="Don't show this again">×</button>
+    </aside>
+    <template id="video-purchase-template">
+            <div class="pro-purchase-dock">
+                <div class="plans" role="radiogroup" aria-label="Choose a plan in the sticky purchase bar">
+                    <button type="button" class="plan" role="radio" aria-checked="true" data-package="lifetime">
+                        <span class="plan-radio" aria-hidden="true"></span>
+                        <span class="plan-body">
+                            <span class="plan-row">
+                                <span class="plan-name">Lifetime</span>
+                                <span class="plan-price" data-price="lifetime">$19.99</span>
+                            </span>
+                            <span class="plan-note"><span>One-time purchase</span><span aria-hidden="true">&bull;</span><span>Includes every feature</span></span>
+                        </span>
+                    </button>
+                    <button type="button" class="plan" role="radio" aria-checked="false" data-package="monthly">
+                        <span class="plan-radio" aria-hidden="true"></span>
+                        <span class="plan-body">
+                            <span class="plan-row">
+                                <span class="plan-name">Monthly</span>
+                                <span class="plan-price" data-price="monthly">$2.99/mo</span>
+                            </span>
+                            <span class="plan-note"><span>Renews monthly</span><span aria-hidden="true">&bull;</span><span>Cancel anytime</span></span>
+                        </span>
+                    </button>
+                </div>
+                <button type="button" id="video-buy" class="btn-primary">
+                    <span class="buy-label" id="video-buy-label">Purchase lifetime</span>
+                    <span id="video-buy-price">$19.99</span>
+                </button>
+                <p id="video-paywall-status" class="paywall-status" aria-live="polite"></p>
+            </div>
+    </template>
+    <div id="sheet" class="sheet" hidden>
+        <button type="button" class="sheet-backdrop" id="sheet-backdrop" tabindex="-1" aria-label="Close"></button>
+        <div class="sheet-panel" role="dialog" aria-modal="true" aria-labelledby="sheet-title">
+            <form id="sheet-form" class="sheet-content" novalidate>
+                <div class="sheet-head">
+                    <h2 id="sheet-title" class="sheet-title">Create account to purchase</h2>
+                    <button type="button" id="sheet-close" class="sheet-close" aria-label="Close">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M18 6L6 18" />
+                            <path d="M6 6L18 18" />
+                        </svg>
+                    </button>
+                </div>
+                <div id="sheet-plan" class="sheet-plan" hidden></div>
+                <div class="sheet-step" data-step="email">
+                    <label class="sheet-label" for="sheet-email">Email</label>
+                    <input type="email" id="sheet-email" class="field" name="email" autocomplete="email"
+                        placeholder="you@school.org" required>
+                </div>
+                <div class="sheet-step" data-step="code" hidden>
+                    <label class="sheet-label" for="sheet-code">Confirmation code</label>
+                    <input type="text" id="sheet-code" class="field" name="code" inputmode="numeric" pattern="[0-9]*"
+                        autocomplete="one-time-code" maxlength="6">
+                    <p class="sheet-help">Enter the confirmation code that was just emailed to you.</p>
+                </div>
+                <p id="sheet-status" class="sheet-status" aria-live="polite"></p>
+                <button type="submit" id="sheet-submit" class="btn-primary">Continue</button>
+            </form>
+        </div>
+    </div>
+
     <nav class="tab-bar" aria-label="Pages">
         <a href="./index.html" class="tab" aria-current="page">
             <svg class="icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"
@@ -161,6 +233,8 @@
     <script src="./sync.js"></script>
     <script src="./swipe.js"></script>
     <script src="./main.js"></script>
+    <script src="./sheet.js"></script>
+    <script src="./feature-video.js?v=20260923-ui2"></script>
 </body>
 
 </html>
