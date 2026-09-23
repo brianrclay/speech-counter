@@ -63,10 +63,6 @@
         return planVariant;
     }
 
-    function experimentContext() {
-        return planVariant ? { experimentId: PLAN_EXPERIMENT, variantId: planVariant } : {};
-    }
-
     function track(name, params) {
         const experiment = planVariant ? { experiment_id: PLAN_EXPERIMENT, variant_id: planVariant } : {};
         window.SpeechAnalytics?.track(name, { ...params, ...experiment });
@@ -260,13 +256,9 @@
             // Signing in may recover an existing purchase from another
             // device or alias a legacy anonymous purchase. Don't charge again.
             if (existing.active) return existing;
-            const purchasingUser = store.session.get()?.userId;
-            if (platform() === 'web') await window.SpeechAnalytics?.preparePurchase();
-            if (store.session.get()?.userId !== purchasingUser) throw new Error('Your account changed. Please try again.');
             track('begin_checkout', { item_id: pkg.id, platform: platform() });
             try {
                 const entitlement = remember(await impl.purchase(pkg));
-                if (entitlement.active) track('checkout_complete', { item_id: pkg.id, platform: platform() });
                 return entitlement;
             } catch (err) {
                 if (cancelled(err)) return null;
@@ -324,7 +316,6 @@
         logOut,
         track,
         defaultPlan,
-        experimentContext,
         canRestore: () => Boolean(impl && impl.canRestore),
         ENTITLEMENT,
     };

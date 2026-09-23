@@ -192,26 +192,9 @@
     } catch (err) {
         analyticsToggle.checked = true;
     }
-    const purchaseAnalytics = document.getElementById('purchase-analytics-toggle');
-    const purchaseAnalyticsStatus = document.getElementById('purchase-analytics-status');
-    function renderAnalytics() {
-        document.getElementById('purchase-analytics-row').hidden = billing.platform() !== 'web' || !account.session();
-        purchaseAnalytics.checked = Boolean(window.SpeechAnalytics?.purchaseEnabled());
-        purchaseAnalytics.disabled = !analyticsToggle.checked;
-    }
-    analyticsToggle.addEventListener('change', async () => {
-        const saved = await window.SpeechAnalytics?.setEnabled(analyticsToggle.checked);
-        renderAnalytics();
-        if (saved === false) purchaseAnalyticsStatus.textContent = 'Your device preference is saved. Reconnect and try again to update purchase analytics on your account.';
+    analyticsToggle.addEventListener('change', () => {
+        window.SpeechAnalytics?.setEnabled(analyticsToggle.checked);
     });
-    purchaseAnalytics.addEventListener('change', async () => {
-        purchaseAnalytics.disabled = true;
-        const saved = await window.SpeechAnalytics?.setPurchaseEnabled(purchaseAnalytics.checked);
-        purchaseAnalyticsStatus.textContent = saved ? 'Purchase analytics preference saved.' : 'Could not update your account. Reconnect and try again.';
-        renderAnalytics();
-    });
-    window.addEventListener('speech:session', renderAnalytics);
-    store.ready().then(renderAnalytics);
 
     window.addEventListener('speech:sync', () => {
         if (!details.hidden) renderDetails();

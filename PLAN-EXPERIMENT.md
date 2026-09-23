@@ -21,21 +21,24 @@ Create a closed Funnel exploration filtered to `experiment_id` =
 1. `paywall_view`
 2. `paywall_cta_click`
 3. `begin_checkout`
-4. `purchase`
 
 The primary metric is unique users clicking the purchase button divided by
 unique users viewing the paywall, per variant. Count users, not raw clicks,
 so repeated taps and visits do not inflate the rate. Compare by assigned
 variant, even when someone selects the other plan. `item_id` records the
-plan actually clicked or purchased. Both the inline and sticky buttons emit
+plan actually clicked. Both the inline and sticky buttons emit
 click events, before sign-in or store availability checks; the sign-in retry
 does not emit another click. Views emit once per page load.
 
 Decide the sample size and minimum worthwhile lift before evaluating a winner;
 run across full weekly cycles and report uncertainty, not just which rate is
-larger. Check checkout/purchase rates as secondary outcomes. More clicks alone
-do not establish higher revenue. Verified purchase events come from the RevenueCat webhook for users who separately opt in to purchase analytics. Revenue comparisons therefore cover consenting, measured users. Browser completion uses checkout_complete to avoid duplicate purchases. Opt-outs and blockers are absent
-from analytics; results represent measured visitors.
+larger. Check checkout-start rates as a secondary outcome. More clicks alone
+do not establish higher revenue. GA records usage, paywall views, plan choices,
+clicks, and checkout starts only. RevenueCat remains the separate source for
+purchases, renewals, refunds, and revenue. No purchase data or account-linked
+GA identifiers are synced between the services. There is no purchase-analytics
+consent prompt. Opt-outs and blockers are absent from analytics; results
+represent measured visitors.
 
 ## Verification and stopping
 
@@ -52,26 +55,8 @@ or restarts. Deploying the code starts the test; no deployment is performed
 by these changes.
 
 
-## Revenue activation
+## Reporting status
 
-The production webhook is `/api/revenuecat-analytics`. It accepts only requests
-with `Authorization: Bearer <RC_ANALYTICS_WEBHOOK_SECRET>` and production web
-billing events. Configure `GA4_MEASUREMENT_ID=G-QPE28RCTSV`, `GA4_API_SECRET`,
-and `RC_ANALYTICS_WEBHOOK_SECRET` as production Netlify function secrets.
-Do not place secrets in source or browser assets.
-
-Create a RevenueCat production-only webhook for the Speech Count RevenueCat
-Billing app with all event types. Non-revenue events are ignored. Test with
-RevenueCat's TEST event, and validate a synthetic payload with GA's debug
-Measurement Protocol endpoint (which does not record revenue), before enabling
-live reporting. Real-event receipt in GA remains to be verified after launch.
-
-Purchase analytics is a separate, default-off consent. The checkout prompt
-and Account privacy control explain the account link; ordinary usage analytics
-alone does not authorize storing GA identifiers with the account. Revocations
-remove those identifiers on the next successful server update. No historical
-payments are backfilled. Delivery receipts deduplicate retries; GA transaction
-IDs also deduplicate purchase sends after an interrupted acknowledgement.
-
-Reporting setup verified September 22, 2026: all three event-scoped dimensions
-exist. Saved funnel: https://analytics.google.com/analytics/web/?authuser=2#/analysis/a137812339p553947714/edit/kp8hTOqyQtmnZTLECFgIcw
+The three event-scoped dimensions were verified September 22, 2026.
+Saved exploration: https://analytics.google.com/analytics/web/?authuser=2#/analysis/a137812339p553947714/edit/kp8hTOqyQtmnZTLECFgIcw
+Use only the three usage steps listed above; revenue reporting stays in RevenueCat.

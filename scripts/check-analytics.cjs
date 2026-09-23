@@ -31,42 +31,28 @@ function setup(agree = false) {
     });
     return { api: window.SpeechAnalytics, calls, events, data, prompts: () => prompts };
 }
-test('no revenue identifiers before consent; declining still allows checkout preparation', async () => {
-    const b = setup(false);
-    await b.api.syncContext();
-    assert.equal(b.calls.at(-1).body.enabled, false);
-    assert.equal(b.calls.at(-1).body.clientId, undefined);
-    await b.api.preparePurchase();
-    await b.api.preparePurchase();
-    assert.equal(b.prompts(), 1);
-    assert.equal(b.api.purchaseEnabled(), false);
-    assert.ok(b.calls.every(c => !c.body.enabled));
-});
-test('opt-in links only GA identifiers and experiment; opting out removes them', async () => {
+test('usage opt-out immediately stops events', async () => {
     const b = setup(true);
-    await b.api.preparePurchase();
-    const body = b.calls.at(-1).body;
-    assert.equal(body.enabled, true);
-    assert.equal(body.consentVersion, 'purchase-v1');
-    assert.equal(body.clientId, '123.456');
-    assert.equal(body.variantId, 'monthly');
-    assert.ok(!JSON.stringify(body).includes('test-account'));
-    await b.api.setPurchaseEnabled(false);
-    assert.equal(b.calls.at(-1).body.enabled, false);
-    assert.equal(b.calls.at(-1).body.clientId, undefined);
-});
-test('usage opt-out immediately stops events and disables revenue reporting', async () => {
-    const b = setup(true);
-    await b.api.preparePurchase();
     await b.api.setEnabled(false);
     const n = b.events.length;
     b.api.track('paywall_cta_click', { item_id: 'monthly' });
     assert.equal(b.events.length, n);
-    assert.equal(b.calls.at(-1).body.enabled, false);
 });
 test('A/B labels survive allowlisting and arbitrary fields do not', () => {
     const b = setup();
     b.api.track('paywall_cta_click', { experiment_id: 'web_default_plan_v1', variant_id: 'monthly', email: 'private@example.com' });
     assert.equal(b.events.at(-1)[2].variant_id, 'monthly');
     assert.equal(b.events.at(-1)[2].email, undefined);
+});
+
+test('revenue events are excluded and no account linkage API is exposed', () => {
+    const b = setup();
+    const n = b.events.length;
+    b.api.track('purchase', { value: 50 });
+    b.api.track('checkout_complete');
+    assert.equal(b.events.length, n);
+    assert.equal(b.api.preparePurchase, undefined);
+    assert.equal(b.api.syncContext, undefined);
+    assert.equal(b.calls.length, 0);
+    assert.equal(b.prompts(), 0);
 });
