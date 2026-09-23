@@ -737,6 +737,8 @@
 
     function renderPaywall() {
         if (!paywallViewed) {
+            selectedPackage = billing.defaultPlan();
+            selectPlan(selectedPackage);
             paywallViewed = true;
             billing.track('paywall_view', { platform: billing.platform() });
         }
@@ -812,7 +814,12 @@
         });
     });
 
-    buyButtons.forEach((button) => button.addEventListener('click', () => buy(selectedPackage)));
+    buyButtons.forEach((button) => button.addEventListener('click', () => {
+        // Count the user's intent even when sign-in or store loading blocks
+        // checkout. The sign-in callback deliberately does not emit again.
+        billing.track('paywall_cta_click', { item_id: selectedPackage, platform: billing.platform() });
+        buy(selectedPackage);
+    }));
 
     purchaseFinish.addEventListener('click', () => {
         celebrating = null;

@@ -193,12 +193,7 @@
         analyticsToggle.checked = true;
     }
     analyticsToggle.addEventListener('change', () => {
-        try {
-            if (analyticsToggle.checked) localStorage.removeItem('speech-counter:analytics');
-            else localStorage.setItem('speech-counter:analytics', 'off');
-        } catch (err) {
-            // Storage unavailable; the default (on) applies.
-        }
+        window.SpeechAnalytics?.setEnabled(analyticsToggle.checked);
     });
 
     window.addEventListener('speech:sync', () => {

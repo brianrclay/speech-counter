@@ -39,8 +39,33 @@
         return 'web';
     }
 
+    const PLAN_EXPERIMENT = 'web_default_plan_v1';
+    const PLAN_EXPERIMENT_ENABLED = true;
+    let planVariant = null;
+
+    // Enroll only when a paywall is displayed. Storage must work so a
+    // returning browser cannot silently cross between experiment groups.
+    function defaultPlan() {
+        if (!PLAN_EXPERIMENT_ENABLED || platform() !== 'web') return 'lifetime';
+        if (planVariant) return planVariant;
+        try {
+            if (localStorage.getItem('speech-counter:analytics') === 'off') return 'lifetime';
+            const key = 'speech-counter:experiment:' + PLAN_EXPERIMENT;
+            let variant = localStorage.getItem(key);
+            if (variant !== 'monthly' && variant !== 'lifetime') {
+                variant = Math.random() < 0.5 ? 'lifetime' : 'monthly';
+                localStorage.setItem(key, variant);
+            }
+            planVariant = variant;
+        } catch (err) {
+            return 'lifetime';
+        }
+        return planVariant;
+    }
+
     function track(name, params) {
-        if (typeof window.gtag === 'function') window.gtag('event', name, params || {});
+        const experiment = planVariant ? { experiment_id: PLAN_EXPERIMENT, variant_id: planVariant } : {};
+        window.SpeechAnalytics?.track(name, { ...params, ...experiment });
     }
 
     function iso(value) {
@@ -234,7 +259,6 @@
             track('begin_checkout', { item_id: pkg.id, platform: platform() });
             try {
                 const entitlement = remember(await impl.purchase(pkg));
-                if (entitlement.active) track('purchase', { item_id: pkg.id, platform: platform() });
                 return entitlement;
             } catch (err) {
                 if (cancelled(err)) return null;
@@ -291,6 +315,7 @@
         logIn,
         logOut,
         track,
+        defaultPlan,
         canRestore: () => Boolean(impl && impl.canRestore),
         ENTITLEMENT,
     };
