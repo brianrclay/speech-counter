@@ -10,7 +10,7 @@
 .feature-video-card small { display: block; color: var(--text-muted); font-size: 11px; margin-top: 4px; }
 .feature-video-card-icon { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 12px; background: var(--accent-soft); color: var(--accent); }
 .board-page.has-feature-video-card { padding-bottom: calc(var(--tab-bar-height) + var(--tab-bar-inset) + var(--tab-bar-bottom) + 92px); }
-.feature-video-dialog { box-sizing: border-box; position: fixed; inset: calc(12px + env(safe-area-inset-top)) 12px auto; width: min(calc(100% - 24px), 680px); max-width: none; height: calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); max-height: none; margin: 0 auto; padding: 12px; border: 1px solid var(--border); border-radius: 24px; color: var(--text); background: var(--surface); overflow: auto; }
+.feature-video-dialog { box-sizing: border-box; position: fixed; inset: calc(12px + env(safe-area-inset-top)) 12px auto; width: min(calc(100% - 24px), 680px); max-width: none; height: calc(100dvh - var(--tab-bar-height) - var(--tab-bar-bottom) - 36px - env(safe-area-inset-top)); max-height: none; margin: 0 auto; padding: 12px; border: 1px solid var(--border); border-radius: 24px; color: var(--text); background: var(--surface); overflow: auto; }
 .feature-video-dialog[open] { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: 10px; }
 .feature-video-dialog::backdrop { background: #100b18b8; }
 .feature-video-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
