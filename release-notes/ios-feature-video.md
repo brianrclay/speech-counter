@@ -14,7 +14,7 @@ npx cap open ios
 
 `sync:ios` builds `www/` and runs `cap sync ios`, copying the video, poster, player code, and current UI styles into `ios/App/App/public`. These generated files are intentionally ignored by Git; repeat sync after changing web assets and before archiving.
 
-The existing Capacitor bridge enables inline media playback. The HTML player uses `playsinline`, starts muted on each open, toggles playback on tap, and exposes an icon-only mute control. The video and price selector share the available viewport above the native tab bar and home indicator. Permanent tour-card dismissal uses Capacitor Preferences on iOS, with local storage as a fallback.
+The existing Capacitor bridge enables inline media playback. The HTML player uses `playsinline`, starts muted on each open, toggles playback on tap, and exposes an icon-only mute control. The video and price selector share the available viewport over the native tab bar while staying clear of the home indicator. Permanent tour-card dismissal uses Capacitor Preferences on iOS, with local storage as a fallback.
 
 ## Before a release
 
