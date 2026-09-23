@@ -1,0 +1,55 @@
+.feature-video-hero { margin: 0; text-align: center; }
+.feature-video-launch { display: block; position: relative; width: min(100%, 340px); margin: auto; padding: 0; overflow: hidden; border: 1px solid var(--border); border-radius: 24px; background: #150d1c; cursor: pointer; }
+.feature-video-launch img { display: block; width: 100%; height: auto; }
+.feature-video-play { position: absolute; bottom: 18px; left: 16px; right: 16px; padding: 14px; border-radius: 16px; background: #f2a9da; color: #291930; font-weight: 600; box-shadow: 0 4px 24px #0005; }
+.feature-video-play small { display: block; margin-top: 4px; font-size: 11px; font-weight: 400; }
+.feature-video-hero figcaption { margin-top: 12px; font-size: 10px; color: var(--text-muted); }
+.feature-video-card { position: fixed; z-index: 19; left: var(--tab-bar-inset); right: var(--tab-bar-inset); bottom: calc(var(--tab-bar-bottom) + var(--tab-bar-height) + 12px); max-width: calc(var(--page-max) - var(--tab-bar-inset) * 2); margin: auto; display: flex; align-items: center; gap: 12px; padding: 14px 16px; border: 1px solid var(--border); border-radius: 20px; background: var(--surface); color: var(--text); box-shadow: var(--shadow-md); cursor: pointer; text-align: left; }
+.feature-video-card-launch > span:nth-child(2) { flex: 1; }
+.feature-video-card strong { display: block; font-size: 13px; line-height: 1.4; }
+.feature-video-card small { display: block; color: var(--text-muted); font-size: 11px; margin-top: 4px; }
+.feature-video-card-icon { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 12px; background: var(--accent-soft); color: var(--accent); }
+.board-page.has-feature-video-card { padding-bottom: calc(var(--tab-bar-height) + var(--tab-bar-inset) + var(--tab-bar-bottom) + 92px); }
+.feature-video-dialog { box-sizing: border-box; position: fixed; inset: calc(12px + env(safe-area-inset-top)) 12px auto; width: min(calc(100% - 24px), 680px); max-width: none; height: calc(100dvh - var(--tab-bar-height) - var(--tab-bar-bottom) - 36px - env(safe-area-inset-top)); max-height: none; margin: 0 auto; padding: 12px; border: 1px solid var(--border); border-radius: 24px; color: var(--text); background: var(--surface); overflow: auto; }
+.feature-video-dialog[open] { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: 10px; }
+.feature-video-dialog::backdrop { background: #100b18b8; }
+.feature-video-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.feature-video-heading h2 { font-size: 15px; font-weight: 600; }
+.feature-video-close { width: 40px; height: 40px; flex-shrink: 0; border: 1px solid var(--border); border-radius: 50%; background: var(--bg); color: var(--text); font-size: 24px; cursor: pointer; }
+.feature-video-stage { min-height: 0; display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: 8px; }
+.feature-video-stage video { width: 100%; height: 100%; min-height: 0; object-fit: contain; background: #150d1c; border-radius: 14px; }
+.feature-video-controls { display: flex; align-items: center; gap: 10px; }
+.feature-video-controls button { min-width: 44px; min-height: 36px; padding: 6px 10px; border-radius: 10px; background: var(--accent-soft); color: var(--accent); cursor: pointer; }
+.feature-video-controls input { width: 100%; min-width: 0; accent-color: var(--accent); }
+.feature-video-time { font-size: 11px; white-space: nowrap; color: var(--text-muted); }
+.feature-video-dialog .pro-purchase-dock { position: static; width: 100%; max-width: none; margin: 0; transform: none; opacity: 1; visibility: visible; pointer-events: auto; box-sizing: border-box; }
+.feature-video-dialog .plans { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.feature-video-dialog .btn-primary { width: 100%; }
+.feature-video-dialog .plan-note { display: none; }
+.feature-video-error:empty { display: none; }
+.feature-video-error { font-size: 12px; color: var(--text-muted); }
+body.feature-video-open { overflow: hidden; }
+@media (max-height: 500px) { .feature-video-dialog { inset: 8px; height: calc(100dvh - 16px); grid-template-columns: minmax(0, 1fr) minmax(210px, .7fr); grid-template-rows: auto minmax(0, 1fr); } .feature-video-heading { grid-column: 1 / -1; } .feature-video-dialog .pro-purchase-dock { align-self: center; } }
+.feature-video-controls button { flex: 0 0 auto; font-size: 12px; line-height: 1.2; white-space: nowrap; }
+.feature-video-terms { margin: 7px 2px 0; font-size: 10px; line-height: 1.4; text-align: center; color: var(--text-muted); }
+.feature-video-terms a { font: inherit; color: inherit; text-decoration: underline; }
+.feature-video-dialog .pro-purchase-dock[hidden] { display: none; }
+.feature-video-dialog.is-premium { grid-template-rows: auto minmax(0, 1fr); }
+
+.feature-video-card { padding: 8px; cursor: default; animation: feature-card-arrive 650ms cubic-bezier(.16, 1, .3, 1) 450ms both; }
+.feature-video-card[hidden] { display: none; }
+.feature-video-card-launch { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; padding: 6px 8px; background: transparent; color: inherit; text-align: left; cursor: pointer; }
+.feature-video-card-icon { flex-shrink: 0; }
+.feature-video-dismiss { display: grid; place-items: center; flex: 0 0 44px; height: 44px; border-radius: 50%; background: transparent; color: var(--text-muted); font-size: 24px; cursor: pointer; }
+.feature-video-dismiss:hover { background: var(--accent-soft); color: var(--accent); }
+.feature-video-card button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 12px; }
+@keyframes feature-card-arrive { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+@media (prefers-reduced-motion: reduce) { .feature-video-card { animation: none; } }
+
+/* Reset browser button chrome; show focus indicators only for keyboard use. */
+.feature-video-card-launch, .feature-video-dismiss, .feature-video-controls button { border: 0; appearance: none; }
+.feature-video-card button:focus:not(:focus-visible), .feature-video-controls button:focus:not(:focus-visible) { outline: none; }
+.feature-video-controls [data-mute] { display: grid; place-items: center; width: 44px; height: 44px; padding: 0; background: transparent; }
+.feature-video-controls [data-mute] svg { width: 20px; height: 20px; }
+.feature-video-stage video { cursor: pointer; }
+.feature-video-stage video:focus-visible, .feature-video-controls button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }

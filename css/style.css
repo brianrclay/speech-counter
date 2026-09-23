@@ -2091,3 +2091,9 @@ html[data-nav="back"]::view-transition-new(root) {
   color: #000 !important;
   color-scheme: light;
 }
+
+/* Keep the current tab distinct without competing with the primary CTA. */
+.tab-bar { --tab-active-bg: #e9e3f2; --tab-active-fg: #59466d; }
+@media (prefers-color-scheme: dark) {
+  .tab-bar { --tab-active-bg: #44334e; --tab-active-fg: #e1d4e8; }
+}

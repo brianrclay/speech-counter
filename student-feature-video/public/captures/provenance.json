@@ -1,0 +1,14 @@
+{
+  "source": "Local app source files, not recreated UI",
+  "sampleDataSource": [
+    "assets/pro/roster.svg",
+    "assets/pro/progress.svg"
+  ],
+  "viewport": [
+    430,
+    850
+  ],
+  "deviceScaleFactor": 3,
+  "externalRequests": "blocked",
+  "errors": []
+}
