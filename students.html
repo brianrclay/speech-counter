@@ -41,7 +41,7 @@
     <link href="./css/reset.css" rel="stylesheet">
     <link href="./css/style.css?v=20260923-ui4" rel="stylesheet">
     <link href="./css/student-preview.css" rel="stylesheet">
-    <link href="./css/feature-video.css?v=20260923-ui5" rel="stylesheet">
+    <link href="./css/feature-video.css?v=20260923-video5" rel="stylesheet">
 </head>
 
 <body class="students-page">
@@ -71,7 +71,10 @@
             </div>
             <figure class="feature-video-hero">
                 <button type="button" class="feature-video-launch" data-feature-video aria-haspopup="dialog">
-                    <img src="./assets/video/student-features.jpg" width="540" height="960" alt="Speech Count student feature video">
+                    <picture>
+                        <source media="(min-width: 900px)" srcset="./assets/video/student-features-desktop-v5.jpg" width="960" height="540">
+                        <img src="./assets/video/student-features-mobile-v5.jpg" width="540" height="720" alt="Speech Count student feature video">
+                    </picture>
                     <span class="feature-video-play">▶ &nbsp; Watch what’s new <small>34 seconds · Tap to watch</small></span>
                 </button>
                 <figcaption>Real app walkthrough · Fictional student data</figcaption>
@@ -416,7 +419,7 @@
     <script src="./swipe.js"></script>
     <script src="./sheet.js"></script>
     <script src="./students.js"></script>
-    <script src="./feature-video.js?v=20260923-ui2"></script>
+    <script src="./feature-video.js?v=20260923-video5"></script>
 </body>
 
 </html>

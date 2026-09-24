@@ -6,6 +6,7 @@ import {
   cancelRender,
   staticFile,
 } from "remotion";
+import { MobileReveal, DesktopReveal } from "./responsive/Reveal";
 import { Reveal } from "./reveal-v2/Reveal";
 
 const fontReady = delayRender("Load the app’s Inter fonts");
@@ -26,6 +27,22 @@ Promise.all(
 export const RemotionRoot: React.FC = () => {
   return (
     <>
+      <Composition
+        id="StudentFeaturesMobile"
+        component={MobileReveal}
+        durationInFrames={1020}
+        fps={30}
+        width={1080}
+        height={1440}
+      />
+      <Composition
+        id="StudentFeaturesDesktop"
+        component={DesktopReveal}
+        durationInFrames={1020}
+        fps={30}
+        width={1920}
+        height={1080}
+      />
       <Composition
         id="StudentFeatureReveal"
         component={Reveal}
