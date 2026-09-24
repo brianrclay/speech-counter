@@ -13,12 +13,12 @@ const clamp = {
   extrapolateLeft: "clamp" as const,
   extrapolateRight: "clamp" as const,
 };
-export function camera(frame: number, column: number) {
-  const index = phoneCamera.findIndex((pose) => pose[0] > frame);
-  if (index < 0) return phoneCamera[phoneCamera.length - 1][column];
-  if (index === 0) return phoneCamera[0][column];
-  const from = phoneCamera[index - 1];
-  const to = phoneCamera[index];
+export function camera(frame: number, column: number, poses = phoneCamera) {
+  const index = poses.findIndex((pose) => pose[0] > frame);
+  if (index < 0) return poses[poses.length - 1][column];
+  if (index === 0) return poses[0][column];
+  const from = poses[index - 1];
+  const to = poses[index];
   // Faster travel into a gentle, roughly 2% overshoot and a soft settle.
   // The same spring drives all four properties so housing and content stay locked.
   const travel = spring({
@@ -68,7 +68,9 @@ export const Touch: React.FC<{
   );
 };
 
-export const Phone: React.FC = () => {
+export const Phone: React.FC<{ poses?: number[][] }> = ({
+  poses = phoneCamera,
+}) => {
   const frame = useCurrentFrame();
   const index = screens.reduce((last, s, i) => (s.at <= frame ? i : last), 0);
   const shot = screens[index];
@@ -80,10 +82,10 @@ export const Phone: React.FC = () => {
         position: "absolute",
         width: 414,
         height: 840,
-        left: camera(frame, 1),
-        top: camera(frame, 2),
-        scale: camera(frame, 3),
-        rotate: `${camera(frame, 4)}deg`,
+        left: camera(frame, 1, poses),
+        top: camera(frame, 2, poses),
+        scale: camera(frame, 3, poses),
+        rotate: `${camera(frame, 4, poses)}deg`,
         transformOrigin: "0 0",
         borderRadius: 62,
         background:
@@ -233,7 +235,11 @@ export const Phone: React.FC = () => {
   );
 };
 
-export const Tablet: React.FC = () => {
+export const Tablet: React.FC<{
+  left?: number;
+  top?: number;
+  scale?: number;
+}> = ({ left = 390, top = 632, scale = 0.8 }) => {
   const frame = useCurrentFrame();
   if (frame < 570 || frame > 755) return null;
   const shown = frame >= 638;
@@ -243,7 +249,8 @@ export const Tablet: React.FC = () => {
         position: "absolute",
         left:
           frame < 721
-            ? 1200 -
+            ? left +
+              810 -
               810 *
                 spring({
                   frame: frame - 570,
@@ -251,11 +258,11 @@ export const Tablet: React.FC = () => {
                   durationInFrames: 35,
                   config: { mass: 1, stiffness: 145, damping: 19 },
                 })
-            : interpolate(frame, [721, 755], [390, 1200], {
+            : interpolate(frame, [721, 755], [left, left + 810], {
                 ...clamp,
                 easing: Easing.bezier(0.7, 0, 0.84, 0),
               }),
-        top: 632,
+        top,
         width: 808,
         height: 1064,
         padding: 20,
@@ -263,7 +270,7 @@ export const Tablet: React.FC = () => {
         background:
           "linear-gradient(130deg,#82798e,#151119 15%,#292330 85%,#8e829b)",
         boxShadow: "0 24px 70px #0008",
-        scale: 0.8,
+        scale,
         transformOrigin: "0 0",
         zIndex: 2,
       }}

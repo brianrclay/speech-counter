@@ -53,3 +53,13 @@ body.feature-video-open { overflow: hidden; }
 .feature-video-controls [data-mute] svg { width: 20px; height: 20px; }
 .feature-video-stage video { cursor: pointer; }
 .feature-video-stage video:focus-visible, .feature-video-controls button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Match the wide composition without covering the purchase options. */
+@media (min-width: 900px) {
+    .feature-video-launch { width: min(100%, 760px); }
+    .feature-video-play { left: 50%; right: auto; width: 300px; transform: translateX(-50%); }
+}
+@media (min-width: 900px) and (min-height: 501px) {
+    .feature-video-dialog { width: min(calc(100% - 48px), 1180px, calc((100dvh - 260px) * 16 / 9 + 26px)); }
+    .feature-video-dialog .pro-purchase-dock { max-width: 620px; justify-self: center; }
+}

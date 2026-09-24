@@ -1,10 +1,16 @@
 # Speech Count — Student Features
 
-Revised phone-led feature reveal: **1080 × 1920**, **30 fps**, **34 seconds**, with instrumental music.
+Responsive feature reveal: **1080 × 1440 (3:4) phone** and **1920 × 1080 (16:9) desktop**, both **30 fps**, **34 seconds**, with instrumental music.
+
+The compact phone composition is designed for the usable player area on a 393px-wide phone, after browser chrome, the video controls, and pricing. It deliberately does not match the full display aspect ratio. Desktop has its own side-by-side typography, camera framing, and device arrangement.
 
 ## Deliverables
 
-- Final video: `out/speech-count-student-features-v4.mp4`
+- Phone video: `out/student-features-mobile-v5.mp4`
+- Desktop video: `out/student-features-desktop-v5.mp4`
+- Responsive compositions: `src/responsive/Reveal.tsx`
+- Shipped MP4s and posters: `../assets/video/student-features-{mobile,desktop}-v5.*`
+- Previous portrait video retained: `out/speech-count-student-features-v4.mp4`
 - Editable composition: `src/reveal-v2/Reveal.tsx`
 - Copy, shot changes, camera keyframes, and touch timing: `src/reveal-v2/timeline.ts`
 - Device frames and clipping: `src/reveal-v2/Device.tsx`
@@ -12,7 +18,7 @@ Revised phone-led feature reveal: **1080 × 1920**, **30 fps**, **34 seconds**, 
 - Verified storyboard: `STORYBOARD.md`
 - Original downloaded CSV: `public/demo/speech-count-2026-09-22.csv`
 
-Use Node 20 or newer. Run `npm install`, then `npx remotion studio --no-open` and select **StudentFeatureReveal**. The old treatment remains in `src/Composition-v1.tsx` and `src/scenes/` for reference, but is not registered as the current composition.
+Use Node 20 or newer. Run `npm install`, then `npx remotion studio --no-open` and select **StudentFeaturesMobile** or **StudentFeaturesDesktop**. **StudentFeatureReveal** remains available as the original 9:16 version. The old treatment remains in `src/Composition-v1.tsx` and `src/scenes/` for reference, but is not registered as the current composition.
 
 ## UI sources and capture method
 
@@ -39,14 +45,15 @@ The product URL **speechcount.com** is verified in `account.js` and `netlify.tom
 ## Rendering and verification
 
 ```sh
-node scripts/render-review.cjs
-node scripts/render-review.cjs --video
+node scripts/render-responsive.cjs
+node scripts/render-responsive.cjs --video
 ```
 
-The helper uses the locally installed Chrome executable on this Mac. Review frames are saved under `out/review/`. For another computer, update the browser path or use standard Remotion rendering:
+The helper uses the locally installed Chrome executable on this Mac. Review frames are saved under `out/mobile/` and `out/desktop/`. For another computer, update the browser path or use standard Remotion rendering:
 
 ```sh
-npx remotion render StudentFeatureReveal out/speech-count-student-features-v4.mp4 --codec=h264 --crf=18
+npx remotion render StudentFeaturesMobile out/student-features-mobile-v5.mp4 --codec=h264 --crf=18
+npx remotion render StudentFeaturesDesktop out/student-features-desktop-v5.mp4 --codec=h264 --crf=18
 ```
 
 ## Motion revision (v3)
@@ -56,3 +63,9 @@ npx remotion render StudentFeatureReveal out/speech-count-student-features-v4.mp
 - iPad content is recaptured at 768 × 1024 and displayed without stretching inside an evenly padded 4:3 screen frame.
 - App screenshots use Remotion Img image-load synchronization, replacing CanvasImage after blank screen frames were confirmed in the prior MP4.
 - The preceding export remains available as speech-count-student-features.mp4 for comparison.
+
+## Responsive integration (v5)
+
+The app chooses the desktop video at viewport widths of 900px and above, and the phone video below that. Selection happens each time the dialog opens; resizing during playback does not interrupt the current video. Both versions start muted. The landing poster uses the same breakpoint. Versioned filenames avoid the immutable asset cache serving the old video.
+
+Validation: Remotion ESLint/TypeScript passed; both MP4s decode fully as H.264/AAC with 1,020 video frames. Reviewed every feature, typing, iPad sync, CSV and closing transition in both layouts. The exposed phone UI remains present in all 45 frames of the 28–29.5s CSV hold in each render. Browser checks covered Board and Students at 393×700, full phone height 393×852, and desktop 1440×900: correct source/poster, muted start, tap pause, sound toggle, pricing visibility and navigation overlap. These are browser viewport checks, not a claim of testing on physical iPhone hardware.

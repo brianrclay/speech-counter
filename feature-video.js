@@ -10,7 +10,7 @@
     dialog.innerHTML = `
         <header class="feature-video-heading"><h2 id="feature-video-title">Meet your student features</h2><button type="button" class="feature-video-close" aria-label="Close video">×</button></header>
         <div class="feature-video-stage">
-            <video muted playsinline webkit-playsinline preload="none" poster="./assets/video/student-features.jpg" aria-label="Pause video" role="button" tabindex="0" disablepictureinpicture></video>
+            <video muted playsinline webkit-playsinline preload="none" poster="./assets/video/student-features-mobile-v5.jpg" aria-label="Pause video" role="button" tabindex="0" disablepictureinpicture></video>
             <div><div class="feature-video-controls">
                 <input type="range" min="0" max="34" step="0.1" value="0" aria-label="Video progress in seconds">
                 <span class="feature-video-time">0:00 / 0:34</span>
@@ -156,7 +156,16 @@
         if (dialog.open) return;
         opener = trigger;
         if (!board) dialog.append(dock);
-        if (!video.getAttribute('src')) video.src = './assets/video/student-features.mp4';
+        // Choose on open, so resizing or rotating never interrupts playback.
+        const variant = window.matchMedia('(min-width: 900px)').matches ? 'desktop' : 'mobile';
+        const source = './assets/video/student-features-' + variant + '-v5.mp4';
+        if (video.getAttribute('src') !== source) {
+            video.poster = './assets/video/student-features-' + variant + '-v5.jpg';
+            video.src = source;
+            seek.value = 0;
+            dialog.querySelector('.feature-video-time').textContent = '0:00 / 0:34';
+        }
+        error.textContent = '';
         dock.inert = false;
         dock.removeAttribute('aria-hidden');
         dock.classList.remove('is-offscreen');
