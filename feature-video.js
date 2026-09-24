@@ -23,6 +23,20 @@
     const mute = dialog.querySelector('[data-mute]');
     const seek = dialog.querySelector('input');
     const error = dialog.querySelector('.feature-video-error');
+    let videoVariant;
+    function trackVideo(name, params = {}) {
+        billing.track(name, {
+            source: board ? 'board' : 'students',
+            platform: billing.platform(),
+            video_id: 'student_features',
+            video_variant: videoVariant || (window.matchMedia('(min-width: 900px)').matches ? 'desktop' : 'mobile'),
+            ...params,
+        });
+    }
+    function trackPurchase() {
+        const plan = dock.querySelector('.plan[aria-checked="true"]');
+        trackVideo('video_cta_click', { item_id: plan?.dataset.package });
+    }
     let opener;
     let dock;
     let anchor;
@@ -44,6 +58,7 @@
             });
         });
         dock.querySelector('.btn-primary').addEventListener('click', () => {
+            trackPurchase();
             billing.track('paywall_cta_click', { item_id: selected, platform: billing.platform() });
             purchase(selected);
         });
@@ -53,9 +68,22 @@
         anchor = document.createComment('Video purchase dock home');
         dock.before(anchor);
         // Restore the existing dock before the existing checkout handler opens sign-in.
-        dock.querySelector('.btn-primary').addEventListener('click', close, true);
+        dock.querySelector('.btn-primary').addEventListener('click', () => {
+            if (dialog.open) trackPurchase();
+            close();
+        }, true);
         window.addEventListener('speech:entitlement', close);
     }
+    // Listen after plan handlers update aria-checked. Programmatic defaults and
+    // price refreshes do not count as user selections.
+    function trackPlan(event) {
+        if (!dialog.open || !event.target.closest('.plan')) return;
+        if (event.type === 'keydown' && !['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) return;
+        const plan = dock.querySelector('.plan[aria-checked="true"]');
+        trackVideo('video_plan_select', { item_id: plan?.dataset.package });
+    }
+    dock.addEventListener('click', trackPlan);
+    dock.addEventListener('keydown', trackPlan);
     function setupBoardCard() {
         const card = document.querySelector('.feature-video-card');
         const store = window.SpeechStore;
@@ -81,6 +109,7 @@
             }
         }
         card.querySelector('.feature-video-dismiss').addEventListener('click', () => {
+            trackVideo('video_dismiss');
             dismissed = true;
             update();
             try { localStorage.setItem(key, 'true'); } catch { /* Still hide for this visit. */ }
@@ -158,6 +187,7 @@
         if (!board) dialog.append(dock);
         // Choose on open, so resizing or rotating never interrupts playback.
         const variant = window.matchMedia('(min-width: 900px)').matches ? 'desktop' : 'mobile';
+        videoVariant = variant;
         const source = './assets/video/student-features-' + variant + '-v5.mp4';
         if (video.getAttribute('src') !== source) {
             video.poster = './assets/video/student-features-' + variant + '-v5.jpg';
@@ -195,11 +225,20 @@
         dialog.close();
         restore();
     }
-    triggers.forEach(trigger => trigger.addEventListener('click', () => open(trigger)));
-    dialog.querySelector('.feature-video-close').addEventListener('click', close);
-    dialog.addEventListener('cancel', event => { event.preventDefault(); close(); });
-    dialog.addEventListener('click', event => { if (event.target === dialog) { const r = dialog.getBoundingClientRect(); if (event.clientX < r.left || event.clientX > r.right || event.clientY < r.top || event.clientY > r.bottom) close(); } });
+    triggers.forEach(trigger => trigger.addEventListener('click', () => {
+        if (dialog.open) return;
+        open(trigger);
+        trackVideo('video_open');
+    }));
+    function dismissVideo() {
+        trackVideo('video_control', { video_action: 'close' });
+        close();
+    }
+    dialog.querySelector('.feature-video-close').addEventListener('click', dismissVideo);
+    dialog.addEventListener('cancel', event => { event.preventDefault(); dismissVideo(); });
+    dialog.addEventListener('click', event => { if (event.target === dialog) { const r = dialog.getBoundingClientRect(); if (event.clientX < r.left || event.clientX > r.right || event.clientY < r.top || event.clientY > r.bottom) dismissVideo(); } });
     function togglePlayback() {
+        trackVideo('video_control', { video_action: video.paused ? (video.ended ? 'replay' : 'play') : 'pause' });
         if (video.paused) {
             if (video.ended) video.currentTime = 0;
             video.play().catch(() => { error.textContent = 'Unable to play. Please try again.'; });
@@ -217,8 +256,9 @@
     video.addEventListener('keydown', event => {
         if (event.key === ' ' || event.key === 'Enter') { event.preventDefault(); togglePlayback(); }
     });
-    mute.addEventListener('click', () => { video.muted = !video.muted; updateSound(); });
+    mute.addEventListener('click', () => { video.muted = !video.muted; updateSound(); trackVideo('video_control', { video_action: video.muted ? 'mute' : 'unmute' }); });
     seek.addEventListener('input', () => { if (Number.isFinite(video.duration)) video.currentTime = Number(seek.value); });
+    seek.addEventListener('change', () => trackVideo('video_control', { video_action: 'seek' }));
     ['play', 'pause', 'ended'].forEach(event => video.addEventListener(event, () => {
         video.setAttribute('aria-label', video.paused ? (video.ended ? 'Replay video' : 'Play video') : 'Pause video');
     }));

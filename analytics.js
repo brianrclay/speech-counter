@@ -8,9 +8,12 @@
         'student_create', 'student_rename', 'student_delete', 'student_view', 'students_sort',
         'session_save', 'sync_complete', 'sync_error', 'session_edit', 'session_delete', 'export_data', 'paywall_view', 'paywall_cta_click', 'select_plan',
         'begin_checkout', 'checkout_cancel', 'checkout_error',
+        'video_open', 'video_control', 'video_cta_click', 'video_plan_select', 'video_dismiss',
         'restore_purchases', 'redeem_code', 'sign_in', 'sign_out']);
     const values = { platform: ['web', 'ios', 'android'], item_id: ['lifetime', 'monthly'],
         experiment_id: ['web_default_plan_v1'], variant_id: ['monthly', 'lifetime'],
+        video_id: ['student_features'], video_variant: ['mobile', 'desktop'],
+        video_action: ['play', 'pause', 'replay', 'mute', 'unmute', 'seek', 'close'],
         format: ['csv', 'json'], result: ['active', 'inactive'], source: ['board', 'students'] };
     let disabled = false;
     let initialized = false;
