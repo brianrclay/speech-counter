@@ -2158,3 +2158,13 @@ html[data-nav="back"]::view-transition-new(root) {
   .board-pro-prompt .board-pro-prompt-dismiss { padding-inline: 8px; }
 }
 #board-pro-link.post-clear-prompt-active { display: none; }
+
+/* Reserve the fixed navigation's occluded area during native focus scrolling.
+   Keep the focus ring and a small gap above the bar, including safe-area inset. */
+html:has(.board-page .board-pro-prompt:not([hidden])) {
+  scroll-padding-block-end: calc(var(--tab-bar-height) + var(--tab-bar-bottom) + 16px);
+}
+.board-pro-prompt a,
+.board-pro-prompt button {
+  scroll-margin-block: 16px;
+}
