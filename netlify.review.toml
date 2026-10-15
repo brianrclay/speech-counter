@@ -1,0 +1,7 @@
+[build]
+command = "npm run build:review"
+publish = "review-dist"
+[build.environment]
+NODE_VERSION = "22"
+[functions]
+directory = "review-empty-functions"

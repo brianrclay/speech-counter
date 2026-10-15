@@ -11,6 +11,7 @@
 
     const MAX_HISTORY = 100;
     const history = [];
+    let promptClearSequence = 0;
 
     function reducedMotion() {
         return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -215,6 +216,7 @@
     }
 
     function undo() {
+        window.dispatchEvent(new Event('speech:board-undo'));
         const action = history.pop();
         if (!action) return;
 
@@ -463,6 +465,10 @@
         const rows = Array.from(rowWrapper.querySelectorAll('.row:not(.template)'));
         if (rows.length === 0) return;
 
+        const promptClearId = ++promptClearSequence;
+        window.dispatchEvent(new CustomEvent('speech:board-clear-start', { detail: { id: promptClearId } }));
+        const meaningful = rows.some(row => String(nameInput(row).value || '').trim() &&
+            getRowCounts(row).correct + getRowCounts(row).incorrect >= 10);
         let remaining = rows.length;
         rows.forEach((row) => {
             playExitThenRemove(row, () => {
@@ -473,6 +479,7 @@
                     playEnter(freshRow);
                     pushHistory({ type: 'clear', rows });
                     saveState();
+                    window.dispatchEvent(new CustomEvent('speech:board-cleared', { detail: { meaningful, id: promptClearId } }));
                 }
             });
         });

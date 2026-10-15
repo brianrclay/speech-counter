@@ -24,3 +24,6 @@ deno.lock
 
 # Local working files and secrets - never commit
 Claude outputs/
+
+# Generated isolated review build
+review-dist/

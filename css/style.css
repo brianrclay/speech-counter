@@ -2097,3 +2097,11 @@ html[data-nav="back"]::view-transition-new(root) {
 @media (prefers-color-scheme: dark) {
   .tab-bar { --tab-active-bg: #44334e; --tab-active-fg: #e1d4e8; }
 }
+
+/* Quiet post-Clear suggestion in normal document flow. */
+.board-pro-prompt { margin: 1rem 0; padding: 1rem; border: 1px solid currentColor; border-radius: 12px; overflow-wrap: anywhere; }
+.board-pro-prompt[hidden] { display: none; }
+.board-pro-prompt h2 { font-size: 1rem; margin: 0 0 .5rem; }
+.board-pro-prompt p { margin: 0 0 .75rem; }
+.board-pro-prompt a, .board-pro-prompt button { display: inline-block; min-height: 44px; padding: .65rem; box-sizing: border-box; max-width: 100%; white-space: normal; }
+#board-pro-link.post-clear-prompt-active { display: none; }

@@ -12,7 +12,7 @@
         return c?.isNativePlatform?.() ? c.getPlatform() : 'web';
     }
     function eligible() { return production || ['ios', 'android'].includes(platform()); }
-    const events = new Set(['app_open','board_add', 'board_remove', 'board_clear', 'board_count', 'board_undo',
+    const events = new Set(['board_pro_prompt_view', 'board_pro_prompt_click', 'board_pro_prompt_dismiss', 'app_open','board_add', 'board_remove', 'board_clear', 'board_count', 'board_undo',
         'student_create', 'student_rename', 'student_delete', 'student_view', 'students_sort',
         'session_save', 'sync_complete', 'sync_error', 'session_edit', 'session_delete', 'export_data', 'paywall_view', 'paywall_cta_click', 'select_plan',
         'begin_checkout', 'checkout_cancel', 'checkout_error', 'checkout_complete', 'checkout_pending', 'plans_error',
@@ -20,7 +20,7 @@
         'demo_view', 'demo_export', 'demo_cta_click',
         'video_open', 'video_control', 'video_cta_click', 'video_plan_select', 'video_dismiss',
         'restore_purchases', 'redeem_code', 'sign_in', 'sign_out']);
-    const values = { platform: ['web', 'ios', 'android'], item_id: ['lifetime', 'monthly'],
+    const values = { prompt_id: ['web_post_clear_pro_v1'], platform: ['web', 'ios', 'android'], item_id: ['lifetime', 'monthly'],
         experiment_id: ['web_default_plan_v1'], variant_id: ['monthly', 'lifetime'],
         video_id: ['student_features'], video_variant: ['mobile', 'desktop'],
         video_action: ['play', 'pause', 'replay', 'mute', 'unmute', 'seek', 'close'],

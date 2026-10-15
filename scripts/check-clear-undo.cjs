@@ -1,0 +1,14 @@
+const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');
+const source=fs.readFileSync(require('path').join(__dirname,'../main.js'),'utf8');
+const events=[],handlers={};const original=[{sessionId:'synthetic-1',name:'Fictional student',target:'Synthetic target',correct:7,incorrect:3},{sessionId:'synthetic-2',name:'Second fictional',target:'Other target',correct:1,incorrect:2}];let saved;
+const wrapper={children:[],querySelectorAll:()=>wrapper.children.slice(),appendChild:r=>{wrapper.children.push(r);r.parentNode=wrapper}};
+function row(data){const classes=new Set();return {data:{...data},style:{},offsetHeight:100,classList:{contains:x=>classes.has(x),add:x=>classes.add(x),remove:x=>classes.delete(x)},addEventListener:(n,f)=>{if(n==='transitionend')data.end=f},removeEventListener:()=>{},remove(){wrapper.children=wrapper.children.filter(r=>r!==this)},end(propertyName='max-height'){data.end?.({propertyName})}}}
+original.forEach(d=>wrapper.appendChild(row({...d})));const history=[];
+const context={Event:class{constructor(type){this.type=type}},CustomEvent:class{constructor(type,o){this.type=type;this.detail=o.detail}},window:{dispatchEvent:e=>events.push(e)},rowWrapper:wrapper,history,undoBtn:{},clearBtn:{addEventListener:(n,f)=>handlers.clear=f},nameInput:r=>({value:r.data.name}),getRowCounts:r=>r.data,reducedMotion:()=>false,cloneTemplateRow:()=>row({sessionId:'fresh',name:'',target:'',correct:0,incorrect:0}),playEnter:()=>{},pushHistory:a=>history.push(a),saveState:()=>{saved=wrapper.children.map(r=>({...r.data}))},swipe:{reset(){}},promptClearSequence:0};
+const exit=source.slice(source.indexOf('    function playExitThenRemove'),source.indexOf('    const hapticTap'));
+const undo=source.slice(source.indexOf('    function undo()'),source.indexOf('    const swipe ='));
+const clear=source.slice(source.indexOf("    clearBtn.addEventListener('click'"),source.indexOf("    undoBtn.addEventListener('click'"));
+vm.createContext(context);vm.runInContext(exit+undo+clear,context);
+handlers.clear();assert.equal(wrapper.children.length,2);assert(!events.some(e=>e.type==='speech:board-cleared'));wrapper.children[0].end('opacity');assert.equal(wrapper.children.length,2);const rows=wrapper.children.slice();rows[0].end();assert.equal(wrapper.children.length,1);rows[1].end();assert.equal(wrapper.children.length,1);assert.equal(saved[0].name,'');assert(events.find(e=>e.type==='speech:board-cleared').detail.meaningful);vm.runInContext('undo()',context);assert.equal(JSON.stringify(saved),JSON.stringify(original));
+handlers.clear();handlers.clear();wrapper.children.slice().forEach(r=>r.end());vm.runInContext('undo()',context);assert.equal(JSON.stringify(saved),JSON.stringify(original));
+console.log('PASS real Clear transition callback filters opacity, waits for all rows, creates blank board; real Undo restores exact row IDs/names/targets/counts/order; repeated Clear preserves restoration');

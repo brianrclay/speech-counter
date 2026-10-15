@@ -58,6 +58,13 @@ for (const native of [false, true]) {
 for (const options of [{ optedOut: true }, { host: 'preview.netlify.app' }, { host: 'localhost' }, { internal: true }]) {
     const f = fixture(options); await ready(); assert.equal(f.scripts.length, 0); f.window.SpeechAnalytics.track('board_count'); assert.equal(f.sent.length, 0);
 }
+for (const name of ['board_pro_prompt_view','board_pro_prompt_click','board_pro_prompt_dismiss']) {
+ const f=fixture(); await ready(); f.load();
+ f.window.SpeechAnalytics.track(name,{prompt_id:'web_post_clear_pro_v1',source:'board',student_name:'private',target:'private',correct:10,accuracy:100});
+ const event=f.sent.find(e=>e.event===name); assert(event);assert.equal(event.properties.prompt_id,'web_post_clear_pro_v1');assert.equal(event.properties.source,'board');
+ for(const key of ['student_name','target','correct','accuracy','experiment_id','variant_id']) assert.equal(event.properties[key],undefined);
+}
+console.log('PASS prompt analytics allowlist retains fixed prompt/source and strips private fields');
 const boot = fixture({native:true,loading:true,delayedStorage:true});
 boot.listeners.DOMContentLoaded(); await ready(); assert.equal(boot.policyRequests.length,0);
 const owner='u_'+'c'.repeat(32); boot.hydrate(owner); await ready();
