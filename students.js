@@ -1,6 +1,8 @@
 (() => {
     'use strict';
 
+    const historyUI = window.SpeechHistory;
+    historyUI.mount(document.getElementById('detail-view'));
     const store = window.SpeechStore;
     const billing = window.SpeechBilling;
     const account = window.SpeechAccount;
@@ -45,7 +47,6 @@
     const statTrials = document.getElementById('stat-trials');
     const statPercent = document.getElementById('stat-percent');
     const exportBtn = document.getElementById('export');
-    const template = document.querySelector('.row.template');
     const addStudentBtn = document.getElementById('add-student');
     const addStudentForm = document.getElementById('add-student-form');
     const newStudentName = document.getElementById('new-student-name');
@@ -61,9 +62,7 @@
     const bulkDone = document.getElementById('bulk-done');
     const swipeActionTemplate = document.getElementById('student-swipe-action').content.firstElementChild;
 
-    const dayFormat = new Intl.DateTimeFormat(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
     const shortDayFormat = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
-    const timeFormat = new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' });
 
     let currentId = null;
     let selecting = false;
@@ -79,11 +78,6 @@
         if (SORTS[localStorage.getItem(SORT_KEY)]) sortMode = localStorage.getItem(SORT_KEY);
     } catch (err) {
         // Storage unavailable; the default applies.
-    }
-
-    function percentOf(correct, incorrect) {
-        const total = correct + incorrect;
-        return total === 0 ? 0 : Math.ceil((correct / total) * 100);
     }
 
     function plural(count, word) {
@@ -356,19 +350,7 @@
         statTrials.textContent = summary.trials;
         statPercent.textContent = summary.percent + '%';
 
-        sessionList.textContent = '';
-        let lastDay = null;
-        sessions.forEach((session) => {
-            const day = dayFormat.format(new Date(session.startedAt));
-            if (day !== lastDay) {
-                const heading = document.createElement('h3');
-                heading.className = 'day-heading';
-                heading.textContent = day;
-                sessionList.appendChild(heading);
-                lastDay = day;
-            }
-            sessionList.appendChild(buildSessionRow(session));
-        });
+        historyUI.renderSessions(sessionList, sessions);
         noSessions.hidden = sessions.length !== 0;
     }
 
@@ -581,48 +563,18 @@
     // Inline editing swaps the target text and the two count chips for
     // inputs in place, so the row keeps its shape while being edited.
     function startEdit(row) {
+        const id = row.dataset.sessionId;
         const editing = sessionList.querySelector('.row.editing');
-        if (editing && editing !== row) renderDetail(currentId);
-        const session = store.sessions.get(row.dataset.sessionId);
-        if (!session || row.classList.contains('editing')) return;
-
-        row.classList.add('editing');
-        const editBtn = row.querySelector('.edit-session');
-        editBtn.querySelector('span').textContent = 'Save';
-        editBtn.setAttribute('aria-label', 'Save session');
-
-        const target = document.createElement('input');
-        target.type = 'text';
-        target.className = 'session-target-input';
-        target.placeholder = 'Target';
-        target.setAttribute('aria-label', 'Target');
-        target.value = session.target;
-        row.querySelector('.session-target').replaceChildren(target);
-
-        [['correct', session.correct], ['incorrect', session.incorrect]].forEach(([kind, value]) => {
-            const input = document.createElement('input');
-            input.type = 'number';
-            input.inputMode = 'numeric';
-            input.min = '0';
-            input.step = '1';
-            input.className = 'session-count-input';
-            input.setAttribute('aria-label', kind === 'correct' ? 'Correct count' : 'Incorrect count');
-            input.value = value;
-            row.querySelector('.session-' + kind).replaceChildren(input);
-        });
-
-        target.focus();
-        target.select();
+        if (editing && editing !== row) {
+            renderDetail(currentId);
+            row = [...sessionList.querySelectorAll('.row')].find((item) => item.dataset.sessionId === id);
+        }
+        if (row) historyUI.startEdit(row, store.sessions.get(id));
     }
 
     function saveEdit(row) {
         const id = row.dataset.sessionId;
-        const count = (input) => Math.max(0, Math.floor(Number(input.value)) || 0);
-        const fields = {
-            target: row.querySelector('.session-target-input').value,
-            correct: count(row.querySelector('.session-correct input')),
-            incorrect: count(row.querySelector('.session-incorrect input')),
-        };
+        const fields = historyUI.editFields(row);
         store.sessions.update(id, fields);
 
         // If this session is still open on the board, keep the board's copy
@@ -708,6 +660,8 @@
     let paywallViewed = false;
     let pricesLoaded = false;
     let offerings = [];
+    let pricesLoading = null;
+    let buying = false;
     let selectedPackage = 'lifetime';
 
     const BUY_LABELS = { lifetime: 'Purchase lifetime', monthly: 'Subscribe monthly' };
@@ -729,10 +683,12 @@
             button.setAttribute('aria-checked', selected ? 'true' : 'false');
             button.tabIndex = selected ? 0 : -1;
         });
-        buyLabel.textContent = BUY_LABELS[packageId] || 'Purchase';
+        const available = offerings.some(pkg => pkg.id === packageId);
+        buyLabel.textContent = pricesLoading ? 'Loading plans…' : available ? BUY_LABELS[packageId] : 'Retry loading plans';
         buyPrice.textContent = priceFor(packageId);
         document.getElementById('sticky-buy-label').textContent = buyLabel.textContent;
         document.getElementById('sticky-buy-price').textContent = buyPrice.textContent;
+        buyButtons.forEach(button => { button.disabled = buying || Boolean(pricesLoading); });
     }
 
     function renderPaywall() {
@@ -740,7 +696,7 @@
             selectedPackage = billing.defaultPlan();
             selectPlan(selectedPackage);
             paywallViewed = true;
-            billing.track('paywall_view', { platform: billing.platform() });
+            billing.track('paywall_view', { source: 'students', platform: billing.platform() });
         }
         selectPlan(selectedPackage);
         // Records already on the device stay exportable after Pro lapses.
@@ -751,20 +707,36 @@
         // reinstalling with the store unreachable still needs the button, and
         // App Review expects it on any screen selling a non-consumable.
         restoreBtn.hidden = billing.platform() === 'web';
-        if (pricesLoaded) return;
-        pricesLoaded = true;
-        billing.offerings().then((packages) => {
+        if (!pricesLoaded && !pricesLoading) loadPrices().catch(() => {});
+    }
+
+    function loadPrices() {
+        if (pricesLoading) return pricesLoading;
+        setPaywallStatus('Loading plans…');
+        document.querySelectorAll('[data-price]').forEach(price => { price.textContent = '—'; });
+        buyButtons.forEach(button => { button.disabled = true; });
+        pricesLoading = billing.offerings().then(packages => {
             offerings = packages;
-            packages.forEach((pkg) => {
-                document.querySelectorAll('[data-price="' + pkg.id + '"]').forEach((price) => {
-                    if (pkg.price) price.textContent = pkg.price + (pkg.id === 'monthly' ? '/mo' : '');
+            pricesLoaded = true;
+            packages.forEach(pkg => {
+                document.querySelectorAll('[data-price="' + pkg.id + '"]').forEach(price => {
+                    price.textContent = pkg.price + (pkg.id === 'monthly' ? '/mo' : '');
                 });
             });
-            selectPlan(selectedPackage);
-        }).catch(() => {
-            // Prices stay at their defaults; buttons still try the store on tap.
+            setPaywallStatus('');
+            return packages;
+        }).catch(err => {
+            offerings = [];
             pricesLoaded = false;
+            billing.track('plans_error', { source: 'students', platform: billing.platform() });
+            setPaywallStatus('Plans could not load. Check your connection, then tap Retry loading plans.');
+            throw err;
+        }).finally(() => {
+            pricesLoading = null;
+            selectPlan(selectedPackage);
         });
+        selectPlan(selectedPackage);
+        return pricesLoading;
     }
 
     function afterEntitlementChange() {
@@ -772,37 +744,45 @@
     }
 
     async function buy(packageId) {
-        const pkg = offerings.find((p) => p.id === packageId);
-        if (!pkg) {
-            setPaywallStatus("The store isn't available right now. Check your connection and try again.");
-            return;
-        }
-        if (!account.session()) {
-            const plan = planButtons.find((b) => b.dataset.package === packageId);
-            window.SpeechSheet.open({ plan: plan.querySelector('.plan-body'), onSignedIn: () => buy(packageId) });
-            return;
-        }
-        setPaywallStatus('');
-        buyButtons.forEach((button) => { button.disabled = true; });
-        planButtons.forEach((b) => { b.disabled = true; });
+        if (buying) return;
+        buying = true;
+        buyButtons.forEach(button => { button.disabled = true; });
+        planButtons.forEach(button => { button.disabled = true; });
         try {
-            const entitlement = await billing.purchase(pkg);
+            // A failed initial load must recover on this same purchase attempt.
+            if (!offerings.some(pkg => pkg.id === packageId)) await loadPrices();
+            const pkg = offerings.find(p => p.id === packageId);
+            if (!pkg) {
+                setPaywallStatus('This plan is unavailable right now. Choose the other plan or retry later.');
+                return;
+            }
+            if (!account.session()) {
+                const plan = planButtons.find(b => b.dataset.package === packageId);
+                window.SpeechSheet.open({ source: 'students', plan: plan.querySelector('.plan-body'), onSignedIn: () => buy(packageId) });
+                return;
+            }
+            setPaywallStatus('');
+            const entitlement = await billing.purchase(pkg, { source: 'students' });
             if (entitlement && entitlement.active) {
                 celebrating = 'purchase';
                 route();
             } else if (entitlement) {
-                setPaywallStatus("The purchase went through but isn't active yet. Try Restore purchases in a moment.");
+                setPaywallStatus('Your purchase is processing. Sign in again in a moment to check your Pro access.');
             }
         } catch (err) {
-            setPaywallStatus(err.message || 'The purchase could not be completed.');
+            setPaywallStatus(err.message || 'The purchase could not be completed. Please try again.');
         } finally {
-            buyButtons.forEach((button) => { button.disabled = false; });
-            planButtons.forEach((b) => { b.disabled = false; });
+            buying = false;
+            planButtons.forEach(b => { b.disabled = false; });
+            selectPlan(selectedPackage);
         }
     }
 
     planButtons.forEach((button) => {
-        button.addEventListener('click', () => selectPlan(button.dataset.package));
+        button.addEventListener('click', () => {
+            selectPlan(button.dataset.package);
+            billing.track('select_plan', { source: 'students', item_id: selectedPackage, platform: billing.platform() });
+        });
         button.addEventListener('keydown', (event) => {
             const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[event.key];
             if (!step) return;
@@ -810,6 +790,7 @@
             const group = [...button.closest('.plans').querySelectorAll('.plan')];
             const next = group[(group.indexOf(button) + step + group.length) % group.length];
             selectPlan(next.dataset.package);
+            billing.track('select_plan', { source: 'students', item_id: selectedPackage, platform: billing.platform() });
             next.focus();
         });
     });
@@ -817,7 +798,7 @@
     buyButtons.forEach((button) => button.addEventListener('click', () => {
         // Count the user's intent even when sign-in or store loading blocks
         // checkout. The sign-in callback deliberately does not emit again.
-        billing.track('paywall_cta_click', { item_id: selectedPackage, platform: billing.platform() });
+        billing.track('paywall_cta_click', { source: 'students', item_id: selectedPackage, platform: billing.platform() });
         buy(selectedPackage);
     }));
 

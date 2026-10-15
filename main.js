@@ -269,6 +269,7 @@
         if (tickBtn) {
             const kind = tickBtn.classList.contains('correct') ? 'correct' : 'incorrect';
             tick(tickBtn.closest('.row'), kind, tickBtn);
+            window.SpeechBilling.track('board_count', { source: 'board', platform: window.SpeechBilling.platform() });
             return;
         }
 

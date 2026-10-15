@@ -19,12 +19,25 @@
     const codeField = document.getElementById('sheet-code');
     const status = document.getElementById('sheet-status');
     const submit = document.getElementById('sheet-submit');
+    const reason = document.createElement('p');
+    reason.className = 'signin-status';
+    reason.textContent = 'Your email keeps Pro and your saved sessions available on your other devices. We’ll send a sign-in code; no password needed.';
+    planSlot.after(reason);
+    const changeEmail = document.createElement('button');
+    changeEmail.type = 'button';
+    changeEmail.className = 'link-btn';
+    changeEmail.textContent = 'Use a different email';
+    status.before(changeEmail);
 
     let step = 'email';
     let busy = false;
     let onSignedIn = null;
     let opener = null;
     let revision = 0;
+    let source;
+    function track(name, stage) {
+        window.SpeechBilling.track(name, { source, stage, platform: window.SpeechBilling.platform() });
+    }
 
     function reducedMotion() {
         return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -38,6 +51,7 @@
             el.classList.remove('step-enter');
         });
         submit.textContent = next === 'email' ? 'Continue' : 'Sign in';
+        changeEmail.hidden = next === 'email';
         if (!animate || reducedMotion()) return;
         const to = panel.offsetHeight;
         steps.find((el) => el.dataset.step === next).classList.add('step-enter');
@@ -82,6 +96,9 @@
     function open(options) {
         revision += 1;
         onSignedIn = options.onSignedIn || null;
+        source = options.source;
+        reason.hidden = !options.plan;
+        track('sign_in_view');
         opener = document.activeElement;
         behind.forEach((el) => { el.inert = true; });
         title.textContent = options.title || 'Create account to purchase';
@@ -101,8 +118,9 @@
         setTimeout(() => emailField.focus(), reducedMotion() ? 0 : 320);
     }
 
-    function close() {
+    function close({ completed = false } = {}) {
         if (sheet.hidden) return;
+        if (!completed) track('sign_in_cancel', step);
         revision += 1;
         sheet.classList.remove('open');
         behind.forEach((el) => { el.inert = false; });
@@ -125,6 +143,14 @@
 
     document.getElementById('sheet-close').addEventListener('click', close);
     document.getElementById('sheet-backdrop').addEventListener('click', close);
+    changeEmail.addEventListener('click', () => {
+        revision += 1;
+        setBusy(false);
+        codeField.value = '';
+        status.textContent = '';
+        showStep('email', true);
+        emailField.focus();
+    });
 
     document.addEventListener('keydown', (event) => {
         if (event.key === 'Escape' && !sheet.hidden) close();
@@ -144,8 +170,10 @@
         const submittedRevision = revision;
         try {
             if (step === 'email') {
+                track('code_request', 'email');
                 await account.requestCode(email);
                 if (submittedRevision !== revision) return;
+                track('code_sent', 'email');
                 showStep('code', true);
                 setBusy(false);
                 codeField.focus();
@@ -156,10 +184,12 @@
             // finishes afterwards. The account may still have signed in.
             if (submittedRevision !== revision) return;
             const done = onSignedIn;
-            close();
+            track('sign_in_complete', 'code');
+            close({ completed: true });
             if (done) done();
         } catch (err) {
             if (submittedRevision !== revision) return;
+            track('sign_in_error', step);
             status.textContent = err.message;
             setBusy(false);
             (step === 'code' ? codeField : emailField).focus();

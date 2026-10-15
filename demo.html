@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="color-scheme" content="light dark">
+    <title>Sample progress - Speech Count</title>
+    <meta name="description" content="Explore a fictional student's saved speech sessions and a sample progress export in Speech Count Pro.">
+    <script src="analytics.js?v=20261001-posthog"></script>
+    <link href="./css/reset.css" rel="stylesheet">
+    <link href="./css/style.css?v=20261001-conversion" rel="stylesheet">
+    <link href="./css/demo.css?v=20261001-history" rel="stylesheet">
+</head>
+<body class="demo-page">
+    <main class="page">
+        <a class="demo-back" href="./students.html">← Back to Pro</a>
+        <p class="demo-eyebrow">Sample workspace · Fictional data</p>
+        <h1>A student’s progress,<br>ready when you need it.</h1>
+        <p class="demo-lead">Pro saves each session so you can review results by target and export them for your next report. Explore Maya’s example below.</p>
+        <div class="demo-workspace">
+            <p class="demo-note">This is the app’s student history screen with fictional sessions. Try editing a target or count. Sample changes reset when you leave.</p>
+            <section id="detail-view" aria-label="Sample student history"></section>
+            <p id="demo-deleted" class="empty-state" hidden>Sample student deleted. Reset the sample to explore again.</p>
+            <button id="demo-reset" class="btn btn-sm" type="button">Reset sample</button>
+        </div>
+        <section class="demo-card" aria-labelledby="demo-export-title">
+            <h2 id="demo-export-title">From sessions to your spreadsheet</h2>
+            <p>CSV keeps the date, target, and counts together for reports and IEP preparation.</p>
+            <button id="demo-export" class="btn-primary" type="button" aria-expanded="false" aria-controls="demo-csv">Preview sample CSV</button>
+            <pre id="demo-csv" tabindex="0" aria-label="Sample CSV export" hidden></pre>
+        </section>
+        <a class="btn-primary demo-cta" href="./students.html">See Pro plans</a>
+        <p class="demo-note">Lifetime and monthly include saved history, sync, and CSV export.</p>
+    </main>
+    <script src="./student-history.js?v=20261001-history"></script>
+    <script src="./demo.js?v=20261001-history"></script>
+</body>
+</html>

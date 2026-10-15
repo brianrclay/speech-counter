@@ -53,6 +53,12 @@ body.feature-video-open { overflow: hidden; }
 .feature-video-controls [data-mute] svg { width: 20px; height: 20px; }
 .feature-video-stage video { cursor: pointer; }
 .feature-video-stage video:focus-visible, .feature-video-controls button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.board-pro-link { display: block; width: fit-content; margin: 20px auto 0; padding: 10px 16px; color: var(--accent); font-size: 13px; font-weight: 600; text-align: center; text-decoration: none; border-radius: 12px; }
+.board-pro-link[hidden] { display: none; }
+.board-pro-link:hover, .board-pro-link:focus-visible { background: var(--accent-soft); }
+.pro-demo-link { text-align: center; margin: 20px 0; font-size: 14px; }
+.pro-demo-link a { color: var(--accent); text-underline-offset: 3px; }
+.pro-demo-link small { display: block; margin-top: 6px; color: var(--text-muted); font-size: 11px; }
 
 /* Match the wide composition without covering the purchase options. */
 @media (min-width: 900px) {

@@ -5,7 +5,14 @@
   "description": "Count speech as it happens",
   "scripts": {
     "build": "node scripts/build.js",
-    "sync": "npm run build && npx cap sync"
+    "test": "node scripts/checks.cjs && node --test tests/account-delete.test.mjs && node scripts/check-billing.cjs && node scripts/check-purchase-ui.cjs && node scripts/check-plan-experiment.cjs && node scripts/check-analytics.cjs && node scripts/check-native-navigation.cjs && node scripts/check-function-packages.mjs --self-test",
+    "test:function-packages": "node scripts/check-function-packages.mjs",
+    "test:database": "node scripts/check-database.mjs",
+    "test:preview-access": "node scripts/check-preview-access.mjs",
+    "db": "node scripts/database.mjs",
+    "preview:database": "npm run build && node scripts/database-preview.mjs",
+    "sync": "npm run build && npx cap sync",
+    "metrics": "node metrics/server.cjs"
   },
   "dependencies": {
     "@capacitor/core": "^8.5.2",
@@ -13,7 +20,9 @@
     "@capacitor/preferences": "^8.0.1",
     "@capacitor/share": "^8.0.1",
     "@netlify/blobs": "^10.7.13",
-    "@revenuecat/purchases-capacitor": "^13.5.1"
+    "@revenuecat/purchases-capacitor": "^13.5.1",
+    "pg": "8.23.1",
+    "posthog-js": "1.435.6"
   },
   "devDependencies": {
     "@capacitor/android": "^8.5.2",

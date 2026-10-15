@@ -8,7 +8,7 @@
     dialog.className = 'feature-video-dialog';
     dialog.setAttribute('aria-labelledby', 'feature-video-title');
     dialog.innerHTML = `
-        <header class="feature-video-heading"><h2 id="feature-video-title">Meet your student features</h2><button type="button" class="feature-video-close" aria-label="Close video">×</button></header>
+        <header class="feature-video-heading"><h2 id="feature-video-title">Save sessions. See progress.</h2><button type="button" class="feature-video-close" aria-label="Close video">×</button></header>
         <div class="feature-video-stage">
             <video muted playsinline webkit-playsinline preload="none" poster="./assets/video/student-features-mobile-v5.jpg" aria-label="Pause video" role="button" tabindex="0" disablepictureinpicture></video>
             <div><div class="feature-video-controls">
@@ -40,7 +40,9 @@
     let opener;
     let dock;
     let anchor;
-    let selected = billing.defaultPlan ? billing.defaultPlan() : 'lifetime';
+    let selected = 'lifetime';
+    let paywallViewed = false;
+    let pricesLoading = null;
     let packages = [];
     let busy = false;
     if (board) {
@@ -59,7 +61,7 @@
         });
         dock.querySelector('.btn-primary').addEventListener('click', () => {
             trackPurchase();
-            billing.track('paywall_cta_click', { item_id: selected, platform: billing.platform() });
+            billing.track('paywall_cta_click', { source: 'board', item_id: selected, platform: billing.platform() });
             purchase(selected);
         });
         select(selected);
@@ -81,12 +83,15 @@
         if (event.type === 'keydown' && !['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) return;
         const plan = dock.querySelector('.plan[aria-checked="true"]');
         trackVideo('video_plan_select', { item_id: plan?.dataset.package });
+        if (board) billing.track('select_plan', { source: 'board', item_id: plan?.dataset.package, platform: billing.platform() });
     }
     dock.addEventListener('click', trackPlan);
     dock.addEventListener('keydown', trackPlan);
     function setupBoardCard() {
         const card = document.querySelector('.feature-video-card');
         const store = window.SpeechStore;
+        const proLink = document.getElementById('board-pro-link');
+        proLink.addEventListener('click', () => billing.track('pro_link_click', { source: 'board', platform: billing.platform() }));
         const key = 'speech-counter:student-tour-dismissed:v1';
         const preferences = window.Capacitor?.isNativePlatform?.()
             ? window.Capacitor.Plugins?.Preferences : null;
@@ -98,7 +103,9 @@
             const rows = store.board.load() || [];
             usedBoard = usedBoard || store.students.list().length > 0 || rows.length > 1
                 || rows.some(row => String(row.name || '').trim());
-            const visible = !dismissed && !usedBoard;
+            const premium = store.entitlements.isPremium();
+            const visible = !premium && !dismissed && !usedBoard;
+            proLink.hidden = premium || visible;
             card.hidden = !visible;
             document.body.classList.toggle('has-feature-video-card', visible);
         }
@@ -122,6 +129,7 @@
         });
         store.onPersist(name => { if (name === 'board' || name === 'students') update(); });
         window.addEventListener('speech:changed', update);
+        window.addEventListener('speech:entitlement', update);
         window.addEventListener('storage', event => {
             if (event.key === key && event.newValue === 'true') { dismissed = true; update(); }
         });
@@ -134,51 +142,72 @@
             button.setAttribute('aria-checked', String(active));
             button.tabIndex = active ? 0 : -1;
         });
-        dock.querySelector('#video-buy-label').textContent = id === 'monthly' ? 'Subscribe monthly' : 'Purchase lifetime';
+        const available = packages.some(pkg => pkg.id === id);
+        dock.querySelector('#video-buy-label').textContent = pricesLoading ? 'Loading plans…' : available ? (id === 'monthly' ? 'Subscribe monthly' : 'Purchase lifetime') : 'Retry loading plans';
+        dock.querySelector('.btn-primary').disabled = busy || Boolean(pricesLoading);
         dock.querySelector('#video-buy-price').textContent = dock.querySelector('[data-price="' + id + '"]').textContent;
     }
-    async function loadPrices() {
-        try {
-            packages = await billing.offerings();
+    function loadPrices() {
+        if (pricesLoading) return pricesLoading;
+        const status = dock.querySelector('.paywall-status');
+        status.textContent = 'Loading plans…';
+        dock.querySelectorAll('[data-price]').forEach(price => { price.textContent = '—'; });
+        dock.querySelector('.btn-primary').disabled = true;
+        pricesLoading = billing.offerings().then(plans => {
+            packages = plans;
             packages.forEach(pkg => {
                 const price = dock.querySelector('[data-price="' + pkg.id + '"]');
-                if (price && pkg.price) price.textContent = pkg.price + (pkg.id === 'monthly' ? '/mo' : '');
+                if (price) price.textContent = pkg.price + (pkg.id === 'monthly' ? '/mo' : '');
             });
+            status.textContent = '';
+            return plans;
+        }).catch(err => {
+            packages = [];
+            status.textContent = 'Plans could not load. Check your connection, then tap Retry loading plans.';
+            billing.track('plans_error', { source: 'board', platform: billing.platform() });
+            throw err;
+        }).finally(() => {
+            pricesLoading = null;
             select(selected);
-        } catch { /* The purchase handler provides a retryable status. */ }
+        });
+        select(selected);
+        return pricesLoading;
     }
     async function purchase(id) {
         if (busy) return;
-        const status = dock.querySelector('.paywall-status');
-        const pkg = packages.find(item => item.id === id);
-        if (!pkg) {
-            status.textContent = "The store isn't available right now. Check your connection and try again.";
-            loadPrices();
-            return;
-        }
-        if (!window.SpeechAccount.session()) {
-            close();
-            window.SpeechSheet.open({ plan: dock.querySelector('[data-package="' + id + '"] .plan-body'), onSignedIn: () => purchase(id) });
-            return;
-        }
         busy = true;
+        const status = dock.querySelector('.paywall-status');
         dock.querySelectorAll('button').forEach(button => { button.disabled = true; });
-        status.textContent = '';
-        close();
         try {
-            const entitlement = await billing.purchase(pkg);
+            if (!packages.some(pkg => pkg.id === id)) await loadPrices();
+            const pkg = packages.find(item => item.id === id);
+            if (!pkg) {
+                status.textContent = 'This plan is unavailable right now. Choose the other plan or retry later.';
+                return;
+            }
+            if (!window.SpeechAccount.session()) {
+                close();
+                window.SpeechSheet.open({ source: 'board', plan: dock.querySelector('[data-package="' + id + '"] .plan-body'), onSignedIn: () => purchase(id) });
+                return;
+            }
+            status.textContent = '';
+            close();
+            const entitlement = await billing.purchase(pkg, { source: 'board' });
             if (entitlement && entitlement.active) {
                 location.href = './students.html';
             } else if (entitlement) {
                 open(opener, false);
-                status.textContent = 'Your purchase is processing. You can restore purchases from the Students page.';
+                status.textContent = 'Your purchase is processing. Sign in again in a moment to check your Pro access.';
+            } else {
+                open(opener, false);
             }
         } catch (err) {
-            open(opener, false);
+            if (!dialog.open) open(opener, false);
             status.textContent = err.message || 'The purchase could not be completed. Please try again.';
         } finally {
             busy = false;
             dock.querySelectorAll('button').forEach(button => { button.disabled = false; });
+            select(selected);
         }
     }
     function open(trigger, autoplay = true) {
@@ -210,7 +239,15 @@
             const premium = window.SpeechStore.entitlements.isPremium();
             dock.hidden = premium;
             dialog.classList.toggle('is-premium', premium);
-            if (!premium) loadPrices();
+            if (!premium) {
+                if (!paywallViewed) {
+                    selected = billing.defaultPlan();
+                    select(selected);
+                    paywallViewed = true;
+                    billing.track('paywall_view', { source: 'board', platform: billing.platform() });
+                }
+                if (!packages.length && !pricesLoading) loadPrices().catch(() => {});
+            }
         }
     }
     function restore() {

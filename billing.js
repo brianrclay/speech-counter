@@ -21,6 +21,7 @@
     const store = window.SpeechStore;
     let impl = null;
     let readyPromise = null;
+    let offeringsPromise = null;
     let operationQueue = Promise.resolve();
 
     // Identity changes and store operations must complete in order. In
@@ -122,6 +123,9 @@
     }
 
     async function nativeImpl(name) {
+        if (!RC_KEYS[name] || RC_KEYS[name].includes('REPLACE_ME')) {
+            throw new Error('Purchases are not available on this platform yet.');
+        }
         const Purchases = window.Capacitor.Plugins.Purchases;
         const session = store.session.get();
         const config = { apiKey: RC_KEYS[name] };
@@ -223,6 +227,9 @@
             const name = platform();
             impl = name === 'web' ? await webImpl() : await nativeImpl(name);
             return impl;
+        }).catch((err) => {
+            readyPromise = null;
+            throw err;
         });
         return readyPromise;
     }
@@ -249,19 +256,27 @@
         });
     }
 
-    function purchase(pkg) {
+    function purchase(pkg, { source } = {}) {
         return serial(async () => {
-            await ready();
-            const existing = remember(await accountInfo(true));
-            // Signing in may recover an existing purchase from another
-            // device or alias a legacy anonymous purchase. Don't charge again.
-            if (existing.active) return existing;
-            track('begin_checkout', { item_id: pkg.id, platform: platform() });
+            const params = { item_id: pkg.id, platform: platform(), source };
+            let stage = 'initialization';
             try {
+                await ready();
+                stage = 'identity';
+                const existing = remember(await accountInfo(true));
+                // Recover existing access without recording another purchase.
+                if (existing.active) return existing;
+                stage = 'payment';
+                track('begin_checkout', params);
                 const entitlement = remember(await impl.purchase(pkg));
+                track(entitlement.active ? 'checkout_complete' : 'checkout_pending', params);
                 return entitlement;
             } catch (err) {
-                if (cancelled(err)) return null;
+                if (stage === 'payment' && cancelled(err)) {
+                    track('checkout_cancel', params);
+                    return null;
+                }
+                track('checkout_error', { ...params, stage });
                 throw err;
             }
         });
@@ -290,9 +305,16 @@
         });
     }
 
-    async function offerings() {
-        await ready();
-        return impl.offerings();
+    function offerings() {
+        // Share concurrent requests, but always allow a fresh attempt after failure.
+        if (!offeringsPromise) {
+            offeringsPromise = ready().then(() => impl.offerings()).then((packages) => {
+                const plans = packages.filter(pkg => ['lifetime', 'monthly'].includes(pkg.id) && pkg.price);
+                if (!plans.length) throw new Error('Plans could not load. Check your connection and retry.');
+                return plans;
+            }).finally(() => { offeringsPromise = null; });
+        }
+        return offeringsPromise;
     }
 
     // The board only needs to notice a lapsed subscription, so it refreshes
