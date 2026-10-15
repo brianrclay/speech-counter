@@ -14,11 +14,24 @@ function setup({native=false,active=false,fail=false,tour=false,last=0,reject=fa
 (async()=>{
  for(const options of [{native:true},{active:true},{fail:true},{tour:true},{reject:true},{visible:false},{last:Date.now()}]){const s=setup(options);await s.clear();assert(s.card.hidden)}
  let s=setup();await s.listeners['speech:board-cleared']({detail:{meaningful:false}});assert(s.card.hidden);await s.clear();assert(!s.card.hidden);s.listeners['speech:board-undo']();assert(s.card.hidden);await s.clear();assert(s.card.hidden);
- s=setup();const pending=s.clear();s.docListeners.keydown({target:{closest:()=>true}});await pending;assert(s.card.hidden);
+ s=setup();const pending=s.clear();s.docListeners.input({target:{closest:()=>true}});await pending;assert(s.card.hidden);
  s=setup({last:Date.now()-8*86400000});await s.clear();assert(!s.card.hidden);s.controls.a.click();s.controls.button.click();assert(s.card.hidden);await s.clear();assert(s.card.hidden);assert.equal(s.events.length,3);for(const [n,p]of s.events){assert(['board_pro_prompt_view','board_pro_prompt_click','board_pro_prompt_dismiss'].includes(n));assert.equal(JSON.stringify(p),JSON.stringify({prompt_id:'web_post_clear_pro_v1',source:'board'}))}
- for(const type of ['pointerdown','keydown','input']){s=setup();await s.clear();s.docListeners[type]({target:{closest:()=>true}});assert(s.card.hidden)}
+ for(const type of ['click','input']){s=setup();await s.clear();s.docListeners[type]({target:{closest:()=>true}});assert(s.card.hidden)}
  s=setup({defer:true});const flight=s.clear();s.listeners['speech:board-undo']();s.resolveBilling({active:false});await flight;assert(s.card.hidden);assert(!s.mem.has('speech-counter:post-clear-pro:v1'));
  s=setup();s.listeners['speech:board-clear-start']({detail:{id:1}});s.docListeners.input({target:{closest:()=>true}});await s.listeners['speech:board-cleared']({detail:{id:1,meaningful:true}});assert(s.card.hidden);assert.equal(s.events.length,0);
  s=setup();s.listeners['speech:board-clear-start']({detail:{id:2}});await s.listeners['speech:board-cleared']({detail:{id:1,meaningful:true}});assert(s.card.hidden);assert.equal(s.events.length,0);
+ // No key listener means browser shortcuts and focus navigation cannot hide
+ // the card or cancel its pending display, regardless of the focused control.
+ s=setup();await s.clear();
+ for(const key of ['Tab','Shift','+','-','0','ArrowDown','Escape']) {
+   s.docListeners.keydown?.({key,metaKey:true,target:{closest:()=>true}});
+   assert(!s.card.hidden);
+ }
+ assert.equal(s.docListeners.keydown,undefined);assert.equal(s.docListeners.pointerdown,undefined);
+ s.docListeners.click({target:{closest:()=>null}});assert(!s.card.hidden);
+ s.controls.a.click();assert(!s.card.hidden);assert.equal(s.events.at(-1)[0],'board_pro_prompt_click');
+ s.controls.button.click();assert(s.card.hidden);assert.equal(s.events.at(-1)[0],'board_pro_prompt_dismiss');
+ s=setup({defer:true});const navigationPending=s.clear();s.docListeners.keydown?.({key:'Tab',target:{closest:()=>true}});s.resolveBilling({active:false});await navigationPending;assert(!s.card.hidden);
+ console.log('PASS Tab/Shift+Tab/browser shortcuts and card navigation preserve visibility; board click/input hide; keyboard-synthesized click uses normal action path');
  console.log('PASS suppression, eligibility signal, cooldown, permanent dismissal, storage failure, unresolved billing, Undo hide, pending cancellation, next interactions, exact privacy payloads');
 })().catch(e=>{console.error(e);process.exitCode=1});

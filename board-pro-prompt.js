@@ -61,11 +61,14 @@
     window.addEventListener('storage', event => {
         if (event.key === key || event.key === tourKey || event.key === null) hide();
     });
-    for (const name of ['pointerdown', 'keydown', 'input']) {
-        document.addEventListener(name, event => {
-            if (event.target.closest?.('#row-wrapper, #add-row, #clear, #undo')) hide();
-        }, true);
-    }
+    // Observe actions, not focus/navigation. Native button activation from
+    // Enter/Space emits click; Tab, Shift+Tab and browser shortcuts do not.
+    document.addEventListener('click', event => {
+        if (event.target.closest?.('#row-wrapper button, #add-row, #clear, #undo')) hide();
+    }, true);
+    document.addEventListener('input', event => {
+        if (event.target.closest?.('#row-wrapper')) hide();
+    }, true);
     card.querySelector('a').addEventListener('click', () => track('board_pro_prompt_click'));
     card.querySelector('button').addEventListener('click', () => {
         blocked = true;
