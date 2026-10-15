@@ -11,7 +11,7 @@
     card.className = 'board-pro-prompt';
     card.hidden = true;
     card.setAttribute('aria-label', 'Speech Count Pro suggestion');
-    card.innerHTML = '<h2>Save your next session automatically</h2><p>With Pro, name a student and start counting. Keep session history, sync across devices, and export results for your next report.</p><a href="./students.html">See Pro plans</a><button type="button">Don’t show this suggestion again</button>';
+    card.innerHTML = '<h2>Save your next session automatically</h2><p>With Pro, name a student and start counting. Keep session history, sync across devices, and export results for your next report.</p><div class="board-pro-prompt-actions"><a class="btn board-pro-prompt-cta" href="./students.html">See Pro plans</a><button class="btn btn-ghost board-pro-prompt-dismiss" type="button">Don’t show this suggestion again</button></div>';
     link.after(card);
     let generation = 0;
     let blocked = false;
