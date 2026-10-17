@@ -14,3 +14,7 @@ The review build has no API functions, scheduled jobs, authentication, payment S
 On a fresh review origin, enter a fictional name, count at least ten trials in that row, then press Clear and wait for the existing row animation. The card replaces the small Pro link. Undo restores the original board exactly and hides the suggestion. A new board interaction also hides it. See Pro plans navigates to Students but sign-in/payments are disabled. Permanent dismissal and seven-day frequency apply to this browser. Use only fictional data: this preview stores its board locally.
 
 Automated tests cover transition-handler ordering, exact Undo restoration, repeated Clear, eligibility, preference/storage suppression, stale completion cancellation, hidden tabs, privacy allowlisting and existing billing/plan selection. Rendered animation, keyboard and responsive screenshot verification remain outstanding because browser tooling was unavailable during preparation.
+
+## One-click growth review
+
+Use **Show growth preview** on the review homepage. It opens a separate fictional storage namespace, resets only that demo’s cooldown/dismissal, seeds 7 correct/3 incorrect and activates the real Clear button. Repeat the action to show again after dismissal. Undo restores the fictional sample. Ordinary preview data stays intact. These controls and namespaced modules are generated only by build:review and absent from the production build.

@@ -14,6 +14,7 @@ fs.writeFileSync(path.join(out,'account.js'),`(()=>{const disabled=async()=>{thr
 fs.writeFileSync(path.join(out,'sync.js'),`window.SpeechSync={start(){},stop(){}};`);
 for(const file of fs.readdirSync(out).filter(f=>f.endsWith('.html'))){let html=fs.readFileSync(path.join(out,file),'utf8');html=html.replace('<body', '<body').replace(/(<body[^>]*>)/,'$1<p style="padding:12px;text-align:center;background:#fff3cc;color:#302700">Development review · fictional data only · accounts, sync, payments and analytics disabled · prices are illustrative.</p>');fs.writeFileSync(path.join(out,file),html);}
 fs.writeFileSync(path.join(out,'_headers'),`/*\n  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; connect-src 'none'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; font-src 'self'; media-src 'self'; frame-src 'none'; object-src 'none'; form-action 'none'; base-uri 'self'\n  X-Robots-Tag: noindex, nofollow\n  X-Content-Type-Options: nosniff\n`);
+require('./review-growth-controls.cjs')(out);
 // Deploy this directory only. No API routes, redirects, functions, SDK or keys.
 fs.rmSync(path.join(out,'vendor'),{recursive:true,force:true});
 console.log('Static safe review build: '+out);

@@ -14,7 +14,7 @@
     "sync": "npm run build && npx cap sync",
     "metrics": "node metrics/server.cjs",
     "build:review": "node scripts/build-review.cjs",
-    "test:review": "node scripts/check-board-pro-prompt.cjs && node scripts/check-clear-undo.cjs && node scripts/check-billing.cjs && node scripts/check-purchase-ui.cjs && node scripts/check-plan-experiment.cjs && node scripts/check-analytics.cjs"
+    "test:review": "node scripts/check-board-pro-prompt.cjs && node scripts/check-clear-undo.cjs && node scripts/check-billing.cjs && node scripts/check-purchase-ui.cjs && node scripts/check-plan-experiment.cjs && node scripts/check-analytics.cjs && node scripts/check-review-controls.cjs"
   },
   "dependencies": {
     "@capacitor/core": "^8.5.2",
